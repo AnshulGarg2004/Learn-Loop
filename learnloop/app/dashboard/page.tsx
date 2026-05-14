@@ -273,8 +273,9 @@ export default function DashboardPage() {
       <motion.aside
         initial={{ x: -300 }}
         animate={{ x: sidebarOpen ? 0 : -300 }}
-        className={`fixed lg:relative top-0 left-0 h-screen w-72 bg-linear-to-b from-white via-sky-50 to-fuchsia-50 border-r border-sky-200 shadow-lg z-40 transition-all duration-300 ${sidebarOpen ? 'block' : 'hidden lg:block'
-          }`}
+        className={`fixed lg:relative top-0 left-0 h-screen w-72 bg-linear-to-b from-white via-sky-50 to-fuchsia-50 border-r border-sky-200 shadow-lg z-40 transition-all duration-300 ${
+          sidebarOpen ? 'block' : 'hidden lg:block'
+        }`}
       >
         <div className="p-6">
           <h1 className="text-2xl font-bold bg-linear-to-r from-sky-600 via-fuchsia-600 to-rose-600 bg-clip-text text-transparent">
@@ -314,10 +315,11 @@ export default function DashboardPage() {
                 setActiveTab(option.id);
                 setSidebarOpen(false);
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${activeTab === option.id
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${
+                activeTab === option.id
                   ? 'bg-linear-to-r from-sky-600 via-fuchsia-600 to-rose-500 text-white shadow-md'
                   : 'text-gray-700 hover:bg-sky-100'
-                }`}
+              }`}
             >
               <span className="text-xl">{option.icon}</span>
               <span>{option.label}</span>
@@ -476,12 +478,13 @@ export default function DashboardPage() {
                                   <span className="text-xs bg-fuchsia-100 text-fuchsia-700 px-2 py-1 rounded">{question.topic}</span>
                                 )}
                                 <span
-                                  className={`text-xs px-2 py-1 rounded font-semibold ${question.urgencyLevel === 'high'
+                                  className={`text-xs px-2 py-1 rounded font-semibold ${
+                                    question.urgencyLevel === 'high'
                                       ? 'bg-red-100 text-red-700'
                                       : question.urgencyLevel === 'medium'
                                         ? 'bg-amber-100 text-amber-700'
                                         : 'bg-emerald-100 text-emerald-700'
-                                    }`}
+                                  }`}
                                 >
                                   {question.urgencyLevel} urgency
                                 </span>
@@ -711,8 +714,9 @@ export default function DashboardPage() {
                         <motion.div
                           key={badge._id}
                           variants={itemVariants}
-                          className={`p-4 text-center rounded-lg border-2 transition-all ${badge.earned ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-300 opacity-50'
-                            }`}
+                          className={`p-4 text-center rounded-lg border-2 transition-all ${
+                            badge.earned ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-300 opacity-50'
+                          }`}
                         >
                           <div className="text-4xl mb-2">{badge.icon}</div>
                           <p className="font-semibold text-sm text-gray-900">{badge.name}</p>
