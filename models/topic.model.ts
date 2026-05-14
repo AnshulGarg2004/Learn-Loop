@@ -17,7 +17,7 @@ const topicSchema = new mongoose.Schema(
 
         subject: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Subject",
+            ref: "Subjects",
             required: true
         }
     },

@@ -1,19 +1,19 @@
-import { connectDB } from '@/lib/connectDb';
-import HelpRequest from '@/app/models/helpRequest.model';
-import Subject from '@/app/models/subject.model';
-import Topic from '@/app/models/topic.model';
-import Users from '@/app/models/user.model';
+import { ConnectDB } from '@/lib/connectDb';
+import HelpRequest from '@/models/helpRequest.model';
+import Subject from '@/models/subject.model';
+import Topic from '@/models/topic.model';
+import Users from '@/models/user.model';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
   try {
-    await connectDB();
+    await ConnectDB();
 
     // Get all open help requests
     const helpRequests = await HelpRequest.find({ status: 'open' })
       .populate('subject', 'name')
       .populate('topic', 'name')
-      .populate('student', 'firstName lastName')
+      .populate('student', 'name')
       .sort({ createdAt: -1 });
 
     // Transform data for response
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
       subject: request.subject?.name || 'Unknown',
       topic: request.topic?.name || 'Unknown',
       student: {
-        name: `${request.student?.firstName || ''} ${request.student?.lastName || ''}`.trim(),
+        name: request.student?.name || 'Unknown Student',
       },
       urgencyLevel: request.urgencyLevel,
       creditsOffered: request.creditsOffered,

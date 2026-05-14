@@ -14,8 +14,8 @@ export async function GET(
 
     // Fetch session with populated references
     const session = await Sessions.findById(sessionId)
-      .populate('tutor', 'firstName lastName')
-      .populate('student', 'firstName lastName')
+      .populate('tutor', 'name')
+      .populate('student', 'name')
       .populate({
         path: 'request',
         populate: [
@@ -37,11 +37,11 @@ export async function GET(
         _id: session._id,
         tutor: {
           _id: session.tutor._id,
-          name: `${session.tutor.firstName || ''} ${session.tutor.lastName || ''}`,
+          name: session.tutor.name || 'Unknown Tutor',
         },
         student: {
           _id: session.student._id,
-          name: `${session.student.firstName || ''} ${session.student.lastName || ''}`,
+          name: session.student.name || 'Unknown Student',
         },
         subject: session.request?.subject?.name || 'Subject',
         topic: session.request?.topic?.name || 'Topic',

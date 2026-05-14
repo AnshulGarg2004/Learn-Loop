@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { ConnectDB } from "@/lib/connectDb";
 import User from "@/models/user.model";
@@ -18,9 +18,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const clerkUser = await currentUser();
+        const name = `${clerkUser?.firstName ?? ""} ${clerkUser?.lastName ?? ""}`.trim() || 
+                     clerkUser?.username || 
+                     clerkUser?.emailAddresses?.[0]?.emailAddress || 
+                     "LearnLoop user";
+        const email = clerkUser?.emailAddresses?.[0]?.emailAddress || "";
+
         const dbUser = await User.findOneAndUpdate(
             { clerkId: userId },
-            { clerkId: userId },
+            { clerkId: userId, name, email },
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
@@ -37,22 +44,24 @@ export async function POST(req: NextRequest) {
         } = body;
 
         // Validate required fields
-        if (!title || !description || !subject || !urgencyLevel) {
+        if (!title || !description || !urgencyLevel) {
             return NextResponse.json(
                 {
-                    error: "Missing required fields: title, description, subject, urgencyLevel",
+                    error: "Missing required fields: title, description, urgencyLevel",
                 },
                 { status: 400 }
             );
         }
 
-        // Verify subject exists
-        const subjectDoc = await Subject.findById(subject);
-        if (!subjectDoc) {
-            return NextResponse.json(
-                { error: "Invalid subject selected" },
-                { status: 400 }
-            );
+        // Verify subject exists (if provided)
+        if (subject) {
+            const subjectDoc = await Subject.findById(subject);
+            if (!subjectDoc) {
+                return NextResponse.json(
+                    { error: "Invalid subject selected" },
+                    { status: 400 }
+                );
+            }
         }
 
         // Verify topic if provided
@@ -69,7 +78,7 @@ export async function POST(req: NextRequest) {
         // Create help request
         const helpRequest = await HelpRequest.create({
             student: dbUser._id,
-            subject,
+            subject: subject || null,
             topic: topic || null,
             title,
             description,
@@ -85,9 +94,14 @@ export async function POST(req: NextRequest) {
             { status: 201 }
         );
     } catch (error: any) {
-        console.error("Help request error:", error);
+        console.error("Help request error details:", {
+            message: error?.message,
+            name: error?.name,
+            stack: error?.stack,
+            error: error,
+        });
         return NextResponse.json(
-            { error: "Failed to create help request" },
+            { error: `Failed to create help request: ${error?.message || 'Unknown error'}` },
             { status: 500 }
         );
     }

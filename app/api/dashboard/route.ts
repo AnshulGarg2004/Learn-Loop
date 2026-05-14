@@ -38,10 +38,15 @@ export async function GET() {
     }
 
     const clerkUser = await currentUser();
+    const name = `${clerkUser?.firstName ?? ""} ${clerkUser?.lastName ?? ""}`.trim() || 
+                 clerkUser?.username || 
+                 clerkUser?.emailAddresses?.[0]?.emailAddress || 
+                 "LearnLoop user";
+    const email = clerkUser?.emailAddresses?.[0]?.emailAddress || "";
 
     const dbUser = await User.findOneAndUpdate(
       { clerkId: userId },
-      { clerkId: userId },
+      { clerkId: userId, name, email },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     ).lean();
 

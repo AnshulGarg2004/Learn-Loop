@@ -26,18 +26,18 @@ const sessionSchema = new mongoose.Schema(
     {
         request: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "HelpRequest"
+            ref: "HelpRequests"
         },
 
         tutor: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
+            ref: "Users",
             required: true
         },
 
         student: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
+            ref: "Users",
             required: true
         },
 
@@ -70,7 +70,7 @@ const sessionSchema = new mongoose.Schema(
             {
                 uploadedBy: {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref: "User"
+                    ref: "Users"
                 },
 
                 fileUrl: String,

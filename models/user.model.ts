@@ -140,12 +140,12 @@ const userSchema = new mongoose.Schema(
         {
             subject: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "Subject"
+                ref: "Subjects"
             },
 
             topic: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "Topic"
+                ref: "Topics"
             },
 
             proficiencyLevel: {
@@ -173,7 +173,7 @@ const userSchema = new mongoose.Schema(
     badges: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Badge"
+            ref: "Badges"
         }
     ],
 

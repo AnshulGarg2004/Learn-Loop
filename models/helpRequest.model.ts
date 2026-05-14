@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 export interface IHelpRequest {
     _id?: mongoose.Types.ObjectId | string;
     student: mongoose.Types.ObjectId | string;
-    subject: mongoose.Types.ObjectId | string;
+    subject?: mongoose.Types.ObjectId | string;
     topic?: mongoose.Types.ObjectId | string;
     title: string;
     description?: string;
@@ -26,19 +26,18 @@ const helpRequestSchema = new mongoose.Schema(
     {
         student: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
+            ref: "Users",
             required: true
         },
 
         subject: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Subject",
-            required: true
+            ref: "Subjects"
         },
 
         topic: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Topic"
+            ref: "Topics"
         },
 
         title: {
@@ -84,7 +83,7 @@ const helpRequestSchema = new mongoose.Schema(
             {
                 tutor: {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref: "User"
+                    ref: "Users"
                 },
 
                 message: String,
