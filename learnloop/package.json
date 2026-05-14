@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.3.3",
+    "@excalidraw/excalidraw": "^0.18.1",
     "@langchain/core": "^0.1.63",
     "@langchain/groq": "^0.0.12",
     "axios": "^1.16.1",
