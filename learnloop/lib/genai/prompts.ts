@@ -1,4 +1,4 @@
-import { PromptTemplate } from 'langchain/prompts';
+import { PromptTemplate } from '@langchain/core/prompts';
 
 export const createDoubtAnalysisPrompt = () => {
   return PromptTemplate.fromTemplate(`You are an expert educational analyst. Analyze the following student doubt and extract structured information.
@@ -33,7 +33,7 @@ Requirements:
 - Include detailed explanations
 - Ensure variety in question types
 
-Return as JSON with structure: { questions: [{ id, question, options, correctAnswer, explanation, difficulty }], topic, totalQuestions }`);
+Return as JSON with structure: {{ questions: [{{ id, question, options, correctAnswer, explanation, difficulty }}], topic, totalQuestions }}`);
 };
 
 export const createSummaryPrompt = () => {

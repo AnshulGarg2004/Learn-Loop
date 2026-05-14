@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { useSocket } from '@/lib/useSocket';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useMentorChat, useSummaryGenerator, useQuizGenerator } from '@/lib/useGenAIHooks';
+import { useRouter } from 'next/navigation';
 
 interface AIMentorMessage {
   role: 'user' | 'assistant';
@@ -23,14 +25,25 @@ export default function SessionPage() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [sessionData, setSessionData] = useState<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   
   // AI Mentor state
   const [activeTab, setActiveTab] = useState<'tutor' | 'ai-mentor'>('tutor');
   const [aiMentorMessages, setAiMentorMessages] = useState<AIMentorMessage[]>([]);
   const [aiMentorInput, setAiMentorInput] = useState('');
-  const [aiMentorLoading, setAiMentorLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string>('');
   const aiChatEndRef = useRef<HTMLDivElement>(null);
+
+  // AI Hooks
+  const { sendMessage: sendAIMessage, loading: aiMentorLoading } = useMentorChat();
+  const { generate: generateSummary, loading: summarizing } = useSummaryGenerator();
+  const { generate: generateQuiz, loading: quizzing } = useQuizGenerator();
+
+  // Completion state
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [summary, setSummary] = useState<any>(null);
+  const [quiz, setQuiz] = useState<any>(null);
+  const [completingSession, setCompletingSession] = useState(false);
 
   // Scroll chat to bottom on new messages
   useEffect(() => {
@@ -102,49 +115,62 @@ export default function SessionPage() {
 
   const handleAIMentorMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!aiMentorInput.trim()) return;
+    if (!aiMentorInput.trim() || aiMentorLoading) return;
 
-    // Add user message to chat
-    const userMsg: AIMentorMessage = {
-      role: 'user',
-      content: aiMentorInput,
-      timestamp: new Date().toISOString(),
-    };
-    setAiMentorMessages((prev) => [...prev, userMsg]);
+    const userMessage = aiMentorInput;
     setAiMentorInput('');
-    setAiMentorLoading(true);
+
+    // Add user message to local state
+    setAiMentorMessages((prev) => [...prev, {
+      role: 'user',
+      content: userMessage,
+      timestamp: new Date().toISOString(),
+    }]);
 
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId,
-          message: aiMentorInput,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get AI mentor response');
+      const response = await sendAIMessage(userMessage, conversationId);
+      if (response && response.mentorResponse) {
+        setAiMentorMessages((prev) => [...prev, {
+          role: 'assistant',
+          content: response.mentorResponse,
+          timestamp: new Date().toISOString(),
+        }]);
       }
-
-      const data = await response.json();
-      const assistantMsg: AIMentorMessage = {
-        role: 'assistant',
-        content: data.data?.mentorResponse || 'Sorry, I could not generate a response.',
-        timestamp: new Date().toISOString(),
-      };
-      setAiMentorMessages((prev) => [...prev, assistantMsg]);
     } catch (error: any) {
       console.error('AI mentor error:', error);
-      const errorMsg: AIMentorMessage = {
+      setAiMentorMessages((prev) => [...prev, {
         role: 'assistant',
-        content: `Error: ${error.message}`,
+        content: `Sorry, I encountered an error: ${error.message}`,
         timestamp: new Date().toISOString(),
-      };
-      setAiMentorMessages((prev) => [...prev, errorMsg]);
+      }]);
+    }
+  };
+
+  const handleEndSession = async () => {
+    if (!confirm('Are you sure you want to end this session?')) return;
+
+    setCompletingSession(true);
+    try {
+      // 1. Mark session as completed
+      await fetch(`/api/session/${sessionId}/complete`, { method: 'POST' });
+
+      // 2. Build transcript
+      const transcript = messages.map(m => `${m.senderName}: ${m.message}`).join('\n');
+
+      // 3. Generate AI Summary
+      const summaryData = await generateSummary(transcript || "No transcript available.");
+      setSummary(summaryData);
+
+      // 4. Generate AI Quiz
+      const quizData = await generateQuiz(sessionData?.topic || "General Study", "medium", 5);
+      setQuiz(quizData);
+
+      setShowSummaryModal(true);
+    } catch (error) {
+      console.error('Failed to end session:', error);
+      alert('Failed to end session properly. Please try again.');
     } finally {
-      setAiMentorLoading(false);
+      setCompletingSession(false);
     }
   };
 
@@ -189,6 +215,13 @@ export default function SessionPage() {
                 }`}>
                   {isConnected ? '● Connected' : '● Disconnected'}
                 </span>
+                <button
+                  onClick={handleEndSession}
+                  disabled={completingSession}
+                  className="px-4 py-1 bg-red-600 text-white rounded-full text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {completingSession ? 'Ending...' : 'End Session'}
+                </button>
               </div>
             </div>
           </div>
@@ -390,6 +423,80 @@ export default function SessionPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Summary Modal */}
+      <AnimatePresence>
+        {showSummaryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+            >
+              <div className="p-6 border-b border-slate-100 bg-linear-to-r from-sky-600 to-fuchsia-600 text-white">
+                <h2 className="text-2xl font-bold">Session Completed! 🎉</h2>
+                <p className="opacity-90">Great job on your learning session.</p>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Summary Section */}
+                <section>
+                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <span>📝</span> AI Summary
+                  </h3>
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <p className="text-slate-700 leading-relaxed italic">
+                      "{summary?.conciseSummary || 'Generating summary...'}"
+                    </p>
+                    {summary?.importantConcepts && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {summary.importantConcepts.map((c: string, i: number) => (
+                          <span key={i} className="px-2 py-1 bg-sky-100 text-sky-700 rounded text-xs font-medium">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Next Steps */}
+                <section>
+                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <span>🚀</span> Next Steps
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      onClick={() => router.push('/dashboard')}
+                      className="p-4 bg-white border-2 border-slate-200 rounded-xl hover:border-fuchsia-500 transition-all text-left group"
+                    >
+                      <p className="font-bold text-slate-800 group-hover:text-fuchsia-600">Back to Dashboard</p>
+                      <p className="text-xs text-slate-500">Return to your learning hub</p>
+                    </button>
+                    <button
+                      onClick={() => router.push(`/quiz/${sessionId}`)}
+                      className="p-4 bg-linear-to-br from-fuchsia-600 to-pink-600 rounded-xl text-white hover:shadow-lg transition-all text-left"
+                    >
+                      <p className="font-bold">Take the Quiz</p>
+                      <p className="text-xs opacity-90">Test what you just learned!</p>
+                    </button>
+                  </div>
+                </section>
+              </div>
+
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="px-6 py-2 bg-slate-800 text-white rounded-lg font-semibold"
+                >
+                  Close & Exit
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

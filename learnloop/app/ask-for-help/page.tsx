@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { useDoubtAnalyzer } from "@/lib/useGenAIHooks";
 
 interface Subject {
   _id: string;
@@ -36,6 +37,51 @@ export default function AskForHelpPage() {
     creditsOffered: 10,
     sessionDuration: 60,
   });
+
+  const { analyze, loading: analyzing } = useDoubtAnalyzer();
+
+  const handleSmartFill = async () => {
+    if (!formData.description.trim()) {
+      setError("Please enter a description first");
+      return;
+    }
+
+    try {
+      const analysis = await analyze(formData.description);
+      if (analysis) {
+        // Try to match subject
+        const matchedSubject = subjects.find(s => 
+          s.name.toLowerCase().includes(analysis.subject.toLowerCase()) || 
+          analysis.subject.toLowerCase().includes(s.name.toLowerCase())
+        );
+
+        setFormData(prev => ({
+          ...prev,
+          title: prev.title || analysis.title,
+          urgencyLevel: analysis.urgency || prev.urgencyLevel,
+          subject: matchedSubject ? matchedSubject._id : prev.subject
+        }));
+
+        if (matchedSubject) {
+          // Store topic to match after topics load
+          setTimeout(() => {
+            setTopics(prevTopics => {
+              const matchedTopic = prevTopics.find(t => 
+                t.name.toLowerCase().includes(analysis.topic.toLowerCase()) || 
+                analysis.topic.toLowerCase().includes(t.name.toLowerCase())
+              );
+              if (matchedTopic) {
+                setFormData(f => ({ ...f, topic: matchedTopic._id }));
+              }
+              return prevTopics;
+            });
+          }, 1000); // Wait for the useEffect to fetch topics
+        }
+      }
+    } catch (err) {
+      console.error("Smart fill failed:", err);
+    }
+  };
 
   // Fetch subjects
   useEffect(() => {
@@ -308,6 +354,56 @@ export default function AskForHelpPage() {
                 placeholder="Explain your problem in detail..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 resize-none"
               />
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={handleSmartFill}
+                  disabled={analyzing || !formData.description.trim()}
+                  className="flex items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-700 disabled:opacity-50"
+                >
+                  {analyzing ? "⌛ Analyzing..." : "✨ Smart Fill with AI"}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Subject */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Subject <span className="text-red-600">*</span>
+                </label>
+                <select
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+                >
+                  <option value="">Select a subject</option>
+                  {subjects.map((s) => (
+                    <option key={s._id} value={s._id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Topic */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Topic
+                </label>
+                <select
+                  name="topic"
+                  value={formData.topic}
+                  onChange={handleChange}
+                  disabled={!formData.subject}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 disabled:bg-gray-50"
+                >
+                  <option value="">Select a topic</option>
+                  {topics.map((t) => (
+                    <option key={t._id} value={t._id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
 

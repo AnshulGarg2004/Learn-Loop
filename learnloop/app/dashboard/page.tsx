@@ -638,10 +638,18 @@ export default function DashboardPage() {
                   <div className="space-y-3">
                     {sessions.completed.length > 0 ? (
                       sessions.completed.map((session) => (
-                        <motion.div key={session._id} variants={itemVariants} className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                          <p className="font-semibold text-gray-900">{session.title}</p>
-                          <p className="text-sm text-gray-600 mt-1">{session.peer}</p>
-                          <p className="text-xs text-emerald-700 mt-2">📝 {session.feedback || 'Completed'}</p>
+                        <motion.div key={session._id} variants={itemVariants} className="p-4 bg-emerald-50 rounded-lg border border-emerald-200 flex justify-between items-center">
+                          <div>
+                            <p className="font-semibold text-gray-900">{session.title}</p>
+                            <p className="text-sm text-gray-600 mt-1">{session.peer}</p>
+                            <p className="text-xs text-emerald-700 mt-2">📝 {session.feedback || 'Completed'}</p>
+                          </div>
+                          <button 
+                            onClick={() => router.push(`/quiz/${session._id}`)}
+                            className="px-3 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                          >
+                            Take AI Quiz ✍️
+                          </button>
                         </motion.div>
                       ))
                     ) : (

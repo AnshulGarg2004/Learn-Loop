@@ -1,6 +1,6 @@
 import { ConversationChain } from 'langchain/chains';
 import { BufferMemory } from 'langchain/memory';
-import { PromptTemplate } from 'langchain/prompts';
+import { PromptTemplate } from '@langchain/core/prompts';
 import { initializeStreamingGroqModel } from '../groq';
 import { createMentorChatSystemPrompt } from '../prompts';
 
