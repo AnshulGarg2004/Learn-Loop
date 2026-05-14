@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       tutor: tutor._id,
       student: helpRequest.student,
       request: helpRequestId,
-      status: 'scheduled',
+      status: 'ongoing',
       startTime: new Date(),
       sessionType: 'video',
     });
@@ -70,13 +70,20 @@ export async function POST(req: Request) {
       { new: true }
     );
 
+    // Get student's clerkId for notifications
+    const studentUser = await Users.findById(helpRequest.student);
+
     return NextResponse.json(
       {
         success: true,
         session: {
           _id: session._id,
           tutorId: session.tutor,
-          studentId: session.student,
+          student: {
+            _id: studentUser?._id,
+            clerkId: studentUser?.clerkId,
+            name: studentUser?.name
+          },
           requestId: session.request,
           status: session.status,
           createdAt: session.createdAt,

@@ -121,7 +121,6 @@ export default function DashboardPage() {
   const [acceptingQuestion, setAcceptingQuestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [incomingSession, setIncomingSession] = useState<{ sessionId: string; tutorName: string } | null>(null);
 
   // Register for notifications
   useEffect(() => {
@@ -129,13 +128,6 @@ export default function DashboardPage() {
       registerUser(user.id);
     }
   }, [isConnected, user?.id, registerUser]);
-
-  // Listen for acceptance
-  useEffect(() => {
-    onRequestAccepted((data) => {
-      setIncomingSession(data);
-    });
-  }, [onRequestAccepted]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -876,45 +868,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-      {/* Incoming Session Notification */}
-      <AnimatePresence>
-        {incomingSession && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-8 right-8 z-[60] max-w-md w-full"
-          >
-            <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-indigo-100 p-6 backdrop-blur-xl bg-white/90">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-2xl shadow-lg shadow-indigo-200 shrink-0">
-                  🎥
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">Session Accepted!</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    <span className="font-bold text-indigo-600">{incomingSession.tutorName}</span> has accepted your request. Ready to start?
-                  </p>
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      onClick={() => router.push(`/session/${incomingSession.sessionId}`)}
-                      className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100"
-                    >
-                      Join Session
-                    </button>
-                    <button
-                      onClick={() => setIncomingSession(null)}
-                      className="px-4 py-2.5 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
-                    >
-                      Later
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

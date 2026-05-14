@@ -79,13 +79,20 @@ app.prepare().then(() => {
     socket.on('register-user', (userId) => {
       socket.join(`user-${userId}`);
       socket.data.userId = userId;
-      console.log(`User ${userId} registered for notifications`);
+      console.log(`[SOCKET] User ${userId} registered in room: user-${userId}`);
     });
 
     // Handle tutor accepting a request
     socket.on('tutor-accepted', (data) => {
       const { studentId, sessionId, tutorName } = data;
-      io.to(`user-${studentId}`).emit('request-accepted', {
+      console.log(`[SOCKET] Tutor ${tutorName} accepted session ${sessionId} for student ${studentId}`);
+      
+      const roomName = `user-${studentId}`;
+      const room = io.sockets.adapter.rooms.get(roomName);
+      const numClients = room ? room.size : 0;
+      console.log(`[SOCKET] Notifying room ${roomName} (${numClients} clients)`);
+      
+      io.to(roomName).emit('request-accepted', {
         sessionId,
         tutorName
       });
