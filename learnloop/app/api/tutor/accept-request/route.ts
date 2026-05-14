@@ -60,19 +60,8 @@ export async function POST(req: Request) {
     }
 
     const creditsToDeduct = helpRequest.creditsOffered || 10;
-
-    // Check if student has enough credits
-    if (student.knowledgeCredits < creditsToDeduct) {
-      return NextResponse.json(
-        { error: 'Student does not have enough credits' },
-        { status: 400 }
-      );
-    }
-
-    // Deduct credits from student
-    await Users.findByIdAndUpdate(student._id, {
-      $inc: { knowledgeCredits: -creditsToDeduct }
-    });
+    // Note: Credits are already deducted at posting time (escrow model).
+    // No deduction needed here.
 
     // Create new session
     const session = await Sessions.create({

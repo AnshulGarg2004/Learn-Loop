@@ -83,6 +83,20 @@ export async function POST(req: NextRequest) {
             topicId = topicDoc?._id;
         }
 
+        // ── ESCROW: Check and deduct credits at posting time ──
+        const credits = creditsOffered || 10;
+        if (dbUser.knowledgeCredits < credits) {
+            return NextResponse.json(
+                { error: `Insufficient credits. You have ${dbUser.knowledgeCredits} but need ${credits} to post this request.` },
+                { status: 400 }
+            );
+        }
+
+        // Deduct credits immediately (escrow)
+        await User.findByIdAndUpdate(dbUser._id, {
+            $inc: { knowledgeCredits: -credits }
+        });
+
         // Create help request
         const helpRequest = await HelpRequest.create({
             student: dbUser._id,
@@ -92,7 +106,7 @@ export async function POST(req: NextRequest) {
             description,
             preferredLanguage: preferredLanguage || "English",
             urgencyLevel,
-            creditsOffered: creditsOffered || 10,
+            creditsOffered: credits,
             sessionDuration: sessionDuration || 60,
             status: "open",
         });

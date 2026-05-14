@@ -80,7 +80,7 @@ export async function GET() {
 
     const expertise = (dbUser.expertise ?? []).map((entry: any) => ({
       subject: entry.subject ? subjectMap.get(String(entry.subject)) ?? "Unknown subject" : "Unknown subject",
-      topic: entry.topic ? topicMap.get(String(entry.topic)) ?? "Unknown topic" : "",
+      topic: entry.topic ? topicMap.get(String(entry.topic)) ?? "" : "",
       proficiencyLevel: entry.proficiencyLevel ?? "beginner",
       experiencePoints: entry.experiencePoints ?? 0,
       averageRating: entry.averageRating ?? 0,

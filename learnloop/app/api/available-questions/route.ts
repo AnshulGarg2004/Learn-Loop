@@ -4,6 +4,8 @@ import Subject from '@/models/subject.model';
 import Topic from '@/models/topic.model';
 import Users from '@/models/user.model';
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { rankRequests } from '@/lib/genai/services/matchmaker';
 
 export async function GET(req: Request) {
   try {
@@ -17,7 +19,7 @@ export async function GET(req: Request) {
       .sort({ createdAt: -1 });
 
     // Transform data for response
-    const questions = helpRequests.map((request: any) => ({
+    let questions: any[] = helpRequests.map((request: any) => ({
       _id: request._id,
       title: request.title,
       description: request.description,
@@ -31,6 +33,40 @@ export async function GET(req: Request) {
       createdAt: new Date(request.createdAt).toLocaleDateString(),
       applicationsCount: request.applications?.length || 0,
     }));
+
+    // AI RANKING (Agent Logic)
+    try {
+      const { userId } = await auth();
+      console.log('[MATCHMAKER] userId:', userId);
+      if (userId) {
+        const dbUser = await Users.findOne({ clerkId: userId });
+        console.log('[MATCHMAKER] expertise count:', dbUser?.expertise?.length ?? 0);
+        if (dbUser && dbUser.expertise?.length > 0) {
+          console.log('[MATCHMAKER] calling rankRequests with', questions.length, 'questions');
+          const matchScores = await rankRequests(dbUser.expertise, questions);
+          console.log('[MATCHMAKER] scores returned:', matchScores.length, JSON.stringify(matchScores));
+          
+          // Map scores back to questions
+          questions = questions.map(q => {
+            const match = matchScores.find(m => m.requestId === q._id.toString());
+            return {
+              ...q,
+              matchScore: match ? match.score : 0,
+              matchReason: match ? match.reason : ''
+            };
+          });
+
+          // Sort by match score (highest first)
+          questions.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+        } else {
+          console.log('[MATCHMAKER] skipped — no expertise found for user');
+        }
+      } else {
+        console.log('[MATCHMAKER] skipped — user not authenticated');
+      }
+    } catch (aiError) {
+      console.error('[MATCHMAKER] AI Matching Error (falling back to default sort):', aiError);
+    }
 
     return NextResponse.json({
       success: true,

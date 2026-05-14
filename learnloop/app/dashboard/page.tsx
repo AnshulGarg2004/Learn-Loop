@@ -60,6 +60,21 @@ interface AnsweredQuestion {
   sessionId?: string;
 }
 
+interface AvailableQuestion {
+  _id: string;
+  title: string;
+  description: string;
+  subject: string;
+  topic: string;
+  student: { name: string };
+  urgencyLevel: UrgencyLevel;
+  creditsOffered: number;
+  createdAt: string;
+  applicationsCount: number;
+  matchScore?: number;
+  matchReason?: string;
+}
+
 interface DashboardSession {
   _id: string;
   title: string;
@@ -117,10 +132,117 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
-  const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
+  const [availableQuestions, setAvailableQuestions] = useState<AvailableQuestion[]>([]);
   const [acceptingQuestion, setAcceptingQuestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Expertise Management State
+  const [showExpertiseModal, setShowExpertiseModal] = useState(false);
+  const [allSubjects, setAllSubjects] = useState<any[]>([]);
+  const [availableTopics, setAvailableTopics] = useState<any[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
+  const [selectedTopicName, setSelectedTopicName] = useState('');
+  const [isUpdatingExpertise, setIsUpdatingExpertise] = useState(false);
+
+  useEffect(() => {
+    if (showExpertiseModal) {
+      const fetchSubjects = async () => {
+        try {
+          const res = await fetch('/api/subjects');
+          if (res.ok) {
+            const data = await res.json();
+            setAllSubjects(data.subjects);
+          }
+        } catch (err) {
+          console.error('Failed to fetch subjects:', err);
+        }
+      };
+      fetchSubjects();
+    }
+  }, [showExpertiseModal]);
+
+  useEffect(() => {
+    if (selectedSubjectId) {
+      const fetchTopics = async () => {
+        try {
+          const res = await fetch(`/api/subjects?subjectId=${selectedSubjectId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setAvailableTopics(data.topics);
+          }
+        } catch (err) {
+          console.error('Failed to fetch topics:', err);
+        }
+      };
+      fetchTopics();
+    } else {
+      setAvailableTopics([]);
+    }
+  }, [selectedSubjectId]);
+
+  const handleUpdateExpertise = async () => {
+    if (!selectedSubjectId) return;
+
+    setIsUpdatingExpertise(true);
+    try {
+      const subjectObj = allSubjects.find(s => s._id === selectedSubjectId);
+      const newExpertise = {
+        subject: subjectObj?.name,
+        topic: selectedTopicName,
+        proficiencyLevel: 'intermediate'
+      };
+
+      // Add to existing expertise
+      const currentExpertise = dashboardData?.profile.expertise || [];
+      const updatedList = [...currentExpertise, newExpertise];
+
+      const res = await fetch('/api/user/expertise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expertise: updatedList })
+      });
+
+      if (res.ok) {
+        // Refresh dashboard data
+        const refreshRes = await fetch('/api/dashboard');
+        if (refreshRes.ok) {
+          const data = await refreshRes.json();
+          setDashboardData(data);
+        }
+        setShowExpertiseModal(false);
+        setSelectedSubjectId('');
+        setSelectedTopicName('');
+      }
+    } catch (err) {
+      console.error('Failed to update expertise:', err);
+    } finally {
+      setIsUpdatingExpertise(false);
+    }
+  };
+
+  const handleRemoveExpertise = async (index: number) => {
+    const currentExpertise = [...(dashboardData?.profile.expertise || [])];
+    currentExpertise.splice(index, 1);
+
+    try {
+      const res = await fetch('/api/user/expertise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expertise: currentExpertise })
+      });
+
+      if (res.ok) {
+        const refreshRes = await fetch('/api/dashboard');
+        if (refreshRes.ok) {
+          const data = await refreshRes.json();
+          setDashboardData(data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to remove expertise:', err);
+    }
+  };
 
   // Register for notifications
   useEffect(() => {
@@ -215,10 +337,10 @@ export default function DashboardPage() {
       }
 
       const data = await response.json();
-      
+
       // Notify the student
       if (isConnected && data.session?.student?.clerkId) {
-         tutorAccepted(data.session.student.clerkId, data.session._id, user?.firstName || 'A tutor');
+        tutorAccepted(data.session.student.clerkId, data.session._id, user?.firstName || 'A tutor');
       }
 
       // Redirect to session page
@@ -513,7 +635,10 @@ export default function DashboardPage() {
                             We've highlighted tutoring requests that match your expertise in <span className="text-white font-black">{profile.expertise.map(e => e.subject).join(', ')}</span>.
                           </p>
                         </div>
-                        <button className="px-6 py-3 bg-white text-indigo-600 rounded-2xl font-black text-sm shadow-lg shadow-indigo-900/20 hover:bg-indigo-50 transition-all whitespace-nowrap">
+                        <button
+                          onClick={() => setShowExpertiseModal(true)}
+                          className="px-6 py-3 bg-white text-indigo-600 rounded-2xl font-black text-sm shadow-lg shadow-indigo-900/20 hover:bg-indigo-50 transition-all whitespace-nowrap"
+                        >
                           Refine Profile
                         </button>
                       </div>
@@ -543,14 +668,25 @@ export default function DashboardPage() {
                             className="group bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all flex flex-col"
                           >
                             <div className="flex justify-between items-start mb-4">
-                              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${question.urgencyLevel === 'high'
-                                ? 'bg-rose-50 text-rose-600'
-                                : question.urgencyLevel === 'medium'
-                                  ? 'bg-amber-50 text-amber-600'
-                                  : 'bg-emerald-50 text-emerald-600'
-                                }`}>
-                                {question.urgencyLevel} Priority
-                              </span>
+                              <div className="flex flex-col gap-2">
+                                <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${question.urgencyLevel === 'high'
+                                  ? 'bg-rose-50 text-rose-600'
+                                  : question.urgencyLevel === 'medium'
+                                    ? 'bg-amber-50 text-amber-600'
+                                    : 'bg-emerald-50 text-emerald-600'
+                                  }`}>
+                                  {question.urgencyLevel} Priority
+                                </span>
+                                {question && question.matchScore && question.matchScore > 0 && (
+                                  <motion.div
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 bg-linear-to-r from-indigo-500 to-violet-600 text-white rounded-lg shadow-sm"
+                                  >
+                                    <span className="text-[9px] font-black uppercase tracking-wider">✨ {question.matchScore}% Match</span>
+                                  </motion.div>
+                                )}
+                              </div>
                               <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-xl">
                                 <span className="text-sm">💎</span>
                                 <span className="text-sm font-black text-indigo-700">{question.creditsOffered}</span>
@@ -561,6 +697,11 @@ export default function DashboardPage() {
                               <h4 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight mb-2">
                                 {question.title}
                               </h4>
+                              {question.matchReason && (
+                                <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-2xl mb-4 border border-slate-100 italic">
+                                  " {question.matchReason} "
+                                </p>
+                              )}
                               <p className="text-sm text-slate-500 line-clamp-3 mb-4 leading-relaxed">
                                 {question.description}
                               </p>
@@ -830,7 +971,15 @@ export default function DashboardPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <div>
-                          <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Expertise Stack</h4>
+                          <div className="flex items-center justify-between mb-6">
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Expertise Stack</h4>
+                            <button
+                              onClick={() => setShowExpertiseModal(true)}
+                              className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline"
+                            >
+                              + Manage
+                            </button>
+                          </div>
                           <div className="flex flex-wrap gap-2">
                             {profile.expertise.length > 0 ? (
                               profile.expertise.map((entry, index) => (
@@ -838,6 +987,12 @@ export default function DashboardPage() {
                                   <span className="w-2 h-2 rounded-full bg-indigo-400 group-hover:scale-125 transition-transform" />
                                   <span className="text-xs font-black text-slate-700">{entry.subject}</span>
                                   {entry.topic && <span className="text-[10px] font-bold text-slate-400">• {entry.topic}</span>}
+                                  <button
+                                    onClick={() => handleRemoveExpertise(index)}
+                                    className="ml-2 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 transition-all"
+                                  >
+                                    ×
+                                  </button>
                                 </div>
                               ))
                             ) : (
@@ -865,6 +1020,79 @@ export default function DashboardPage() {
                 </motion.div>
               )}
             </motion.div>
+
+
+            {/* Expertise Management Modal */}
+            <AnimatePresence>
+              {showExpertiseModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl">
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden flex flex-col border border-white"
+                  >
+                    <div className="p-8 border-b border-slate-100 bg-linear-to-br from-indigo-600 to-violet-700 text-white">
+                      <h3 className="text-2xl font-black tracking-tight">Add Expertise</h3>
+                      <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-1">Refine your teaching profile</p>
+                    </div>
+
+                    <div className="p-8 space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Subject</label>
+                        <select
+                          value={selectedSubjectId}
+                          onChange={(e) => setSelectedSubjectId(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="">Select a subject...</option>
+                          {allSubjects.map((s) => (
+                            <option key={s._id} value={s._id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <AnimatePresence mode="wait">
+                        {selectedSubjectId && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="space-y-2"
+                          >
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Topic (Optional)</label>
+                            <select
+                              value={selectedTopicName}
+                              onChange={(e) => setSelectedTopicName(e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all appearance-none cursor-pointer"
+                            >
+                              <option value="">Any topic</option>
+                              {availableTopics.map((t) => (
+                                <option key={t._id} value={t.name}>{t.name}</option>
+                              ))}
+                            </select>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-3">
+                      <button
+                        onClick={() => setShowExpertiseModal(false)}
+                        className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleUpdateExpertise}
+                        disabled={!selectedSubjectId || isUpdatingExpertise}
+                        className="flex-2 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all active:scale-95 disabled:opacity-30 shadow-lg"
+                      >
+                        {isUpdatingExpertise ? 'Adding...' : 'Add Subject'}
+                      </button>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
