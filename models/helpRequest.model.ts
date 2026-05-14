@@ -107,4 +107,5 @@ const helpRequestSchema = new mongoose.Schema(
     }
 );
 
-export default mongoose.model("HelpRequest", helpRequestSchema);
+const HelpRequests = mongoose.models.HelpRequests || mongoose.model("HelpRequests", helpRequestSchema);
+export default HelpRequests;
