@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useMentorChat, useSummaryGenerator, useQuizGenerator } from '@/lib/useGenAIHooks';
 import { useRouter } from 'next/navigation';
 import Whiteboard from '@/components/whiteboard';
+import VideoRoom from '@/components/videocall';
 
 interface AIMentorMessage {
   role: 'user' | 'assistant';
@@ -290,42 +291,9 @@ export default function SessionPage() {
                   exit={{ opacity: 0, scale: 1.05 }}
                   className="w-full h-full bg-slate-900 rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col border-4 border-white"
                 >
-                  {/* Video Grid */}
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
-                    {/* Primary User (Local) */}
-                    <div className="relative bg-slate-800 rounded-3xl overflow-hidden border border-slate-700 aspect-video flex items-center justify-center">
-                      <div className="text-center">
-                         <div className="w-16 h-16 rounded-full bg-indigo-600 mx-auto mb-3 flex items-center justify-center text-white font-black text-xl">
-                            {initials}
-                         </div>
-                         <p className="text-[10px] font-black text-white uppercase tracking-widest">You (Self)</p>
-                      </div>
-                      <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/40 backdrop-blur-md rounded-lg border border-white/10">
-                        <p className="text-[10px] font-black text-white uppercase tracking-widest">Mic Active</p>
-                      </div>
-                    </div>
-
-                    {/* Remote Users */}
-                    {connectedUsers.map((u) => (
-                      <div key={u.socketId} className="relative bg-slate-800 rounded-3xl overflow-hidden border border-slate-700 aspect-video flex items-center justify-center">
-                        <div className="text-center">
-                           <div className="w-16 h-16 rounded-full bg-indigo-500 mx-auto mb-3 flex items-center justify-center text-white font-black text-xl">
-                              {u.userName.charAt(0).toUpperCase()}
-                           </div>
-                           <p className="text-[10px] font-black text-white uppercase tracking-widest">{u.userName} ({u.role})</p>
-                        </div>
-                        <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/40 backdrop-blur-md rounded-lg border border-white/10">
-                          <p className="text-[10px] font-black text-white uppercase tracking-widest">Participant</p>
-                        </div>
-                      </div>
-                    ))}
-
-                    {connectedUsers.length === 0 && (
-                      <div className="relative bg-slate-800/50 rounded-3xl overflow-hidden border border-slate-700 border-dashed aspect-video flex flex-col items-center justify-center">
-                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Waiting for others...</p>
-                         <p className="text-xs text-slate-600 mt-2">Only you are in this room</p>
-                      </div>
-                    )}
+                  {/* Real-time Video Conferencing */}
+                  <div className="flex-1 overflow-hidden">
+                    <VideoRoom roomId={sessionId} />
                   </div>
 
                   {/* On-video Controls */}
@@ -351,6 +319,12 @@ export default function SessionPage() {
                          <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">Collaborative Whiteboard</h3>
                       </div>
                       <div className="flex gap-2">
+                         <button 
+                           onClick={() => setViewMode('video')}
+                           className="px-4 py-1.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2"
+                         >
+                            <span>🎥</span> Join Video Call
+                         </button>
                          <span className="px-3 py-1 bg-indigo-50 rounded-full text-[9px] font-black text-indigo-600 uppercase tracking-tighter">Live Syncing</span>
                       </div>
                    </div>

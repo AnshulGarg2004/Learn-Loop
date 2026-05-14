@@ -31,9 +31,49 @@ app.prepare().then(() => {
     transports: ['websocket', 'polling'],
   });
 
+  // Random Video Matching Logic
+  const waitingList = [];
+  const activePairs = new Map();
+
   // Socket.io event handlers
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
+
+    // --- Random Video Matching ---
+    socket.on("start-matching", () => {
+        if (waitingList.includes(socket.id)) return;
+        
+        if (waitingList.length > 0) {
+            const partner = waitingList.shift();
+            const randomRoomId = `random-${Math.random().toString(36).substring(7)}`;
+
+            activePairs.set(socket.id, partner);
+            activePairs.set(partner, socket.id);
+
+            socket.emit("matched", { roomId: randomRoomId });
+            io.to(partner).emit("matched", { roomId: randomRoomId });
+        } else {
+            waitingList.push(socket.id);
+            socket.emit('waiting');
+        }
+    });
+
+    socket.on("next-match", () => {
+        handleLeaveMatch(socket.id);
+    });
+
+    function handleLeaveMatch(id) {
+        const index = waitingList.indexOf(id);
+        if (index !== -1) waitingList.splice(index, 1);
+        
+        const partner = activePairs.get(id);
+        if (partner) {
+            io.to(partner).emit("partnerLeft");
+            activePairs.delete(partner);
+            activePairs.delete(id);
+        }
+    }
+    // ----------------------------
 
     // Register user for personal notifications
     socket.on('register-user', (userId) => {
@@ -104,6 +144,7 @@ app.prepare().then(() => {
         userId: socket.data.userId,
         x,
         y,
+        userName: socket.data.userName
       });
     });
 
@@ -115,6 +156,7 @@ app.prepare().then(() => {
 
     // Handle disconnection
     socket.on('disconnect', () => {
+      handleLeaveMatch(socket.id);
       const sessionId = socket.data.sessionId;
       io.to(`session-${sessionId}`).emit('user-left', {
         userId: socket.data.userId,

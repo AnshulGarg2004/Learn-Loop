@@ -13,6 +13,7 @@
     "@excalidraw/excalidraw": "^0.18.1",
     "@langchain/core": "^0.1.63",
     "@langchain/groq": "^0.0.12",
+    "@zegocloud/zego-uikit-prebuilt": "^2.17.3",
     "axios": "^1.16.1",
     "framer-motion": "^12.38.0",
     "langchain": "^0.1.37",
