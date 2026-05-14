@@ -4,6 +4,7 @@ import Users from '@/models/user.model';
 import HelpRequest from '@/models/helpRequest.model';
 import Sessions from '@/models/sesion.model';
 import { NextResponse } from 'next/server';
+import { checkAndAwardBadges } from '@/lib/gamification';
 
 export async function POST(
   req: Request,
@@ -65,6 +66,9 @@ export async function POST(
       }, { new: true });
       
       console.log(`[REWARD] Successfully updated tutor. New balance: ${updateResult?.knowledgeCredits}, New Rep: ${updateResult?.reputationPoints}`);
+
+      // 4. Check for Badges & Streaks
+      await checkAndAwardBadges(tutor._id.toString(), Number(rating));
     } else {
       console.error(`[REWARD] Tutor not found in database: ${tutorId}`);
     }
