@@ -140,6 +140,28 @@ app.prepare().then(() => {
       }).catch(err => console.error('[SOCKET] Failed to save message:', err));
     });
 
+    // Handle resource sharing
+    socket.on('share-resource', (data) => {
+      const { sessionId, resourceType, fileUrl, title } = data;
+      const timestamp = new Date().toISOString();
+      const uploadedBy = socket.data.userId;
+
+      io.to(`session-${sessionId}`).emit('receive-resource', {
+        uploadedBy,
+        resourceType,
+        fileUrl,
+        title,
+        uploadedAt: timestamp,
+      });
+
+      // Save to database asynchronously
+      fetch(`http://${hostname}:${port}/api/session/${sessionId}/resources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploadedBy, resourceType, fileUrl, title, timestamp })
+      }).catch(err => console.error('[SOCKET] Failed to save resource:', err));
+    });
+
     // Handle whiteboard drawing
     socket.on('draw', (data) => {
       const { sessionId, drawData } = data;

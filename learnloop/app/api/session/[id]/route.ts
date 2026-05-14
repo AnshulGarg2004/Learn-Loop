@@ -53,6 +53,8 @@ export async function GET(
         endTime: session.endTime,
         sessionType: session.sessionType,
         messages: session.messages || [],
+        resources: session.resources || [],
+        aiMessages: session.aiMessages || [],
       },
     });
   } catch (error) {

@@ -15,6 +15,7 @@ export interface ISession {
         uploadedBy?: mongoose.Types.ObjectId | string;
         fileUrl?: string;
         resourceType?: string;
+        title?: string;
         uploadedAt?: Date;
     }>;
     sessionSummary?: string;
@@ -80,9 +81,8 @@ const sessionSchema = new mongoose.Schema(
                 },
 
                 fileUrl: String,
-
                 resourceType: String,
-
+                title: String,
                 uploadedAt: {
                     type: Date,
                     default: Date.now
@@ -95,6 +95,11 @@ const sessionSchema = new mongoose.Schema(
             senderId: String,
             senderName: String,
             message: String,
+            timestamp: { type: Date, default: Date.now }
+        }],
+        aiMessages: [{
+            role: String,
+            content: String,
             timestamp: { type: Date, default: Date.now }
         }],
         rating: {

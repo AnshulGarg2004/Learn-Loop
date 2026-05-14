@@ -45,11 +45,29 @@ export async function GET() {
       "LearnLoop user";
     const email = clerkUser?.emailAddresses?.[0]?.emailAddress || "";
 
-    const dbUser = await User.findOneAndUpdate(
-      { clerkId: userId },
-      { clerkId: userId, name, email },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    ).lean();
+    let dbUser = await User.findOne({ clerkId: userId }).lean();
+
+    if (!dbUser && email) {
+      // Fallback: check if user exists by email but has old clerkId
+      dbUser = await User.findOneAndUpdate(
+        { email },
+        { clerkId: userId, name, email },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      ).lean();
+    } else if (dbUser) {
+      dbUser = await User.findOneAndUpdate(
+        { clerkId: userId },
+        { name, email },
+        { new: true }
+      ).lean();
+    } else {
+      // Edge case: no email and no dbUser
+      dbUser = await User.findOneAndUpdate(
+        { clerkId: userId },
+        { clerkId: userId, name, email },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      ).lean();
+    }
 
     const userObjectId = dbUser._id;
 
@@ -211,7 +229,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Dashboard fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch dashboard data" },
+      { error: "Failed to fetch dashboard data", details: error.message, stack: error.stack },
       { status: 500 }
     );
   }

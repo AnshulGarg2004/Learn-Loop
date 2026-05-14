@@ -20,7 +20,7 @@ export default function SessionPage() {
   const params = useParams();
   const { user } = useUser();
   const sessionId = params.id as string;
-  const { isConnected, joinSession, sendMessage, messages, setInitialMessages, onUserJoined, onUserLeft, endSession, onSessionEnded } = useSocket();
+  const { isConnected, joinSession, sendMessage, messages, setInitialMessages, resources, shareResource, setInitialResources, onUserJoined, onUserLeft, endSession, onSessionEnded } = useSocket();
 
   const [chatMessage, setChatMessage] = useState('');
   const [connectedUsers, setConnectedUsers] = useState<any[]>([]);
@@ -29,12 +29,18 @@ export default function SessionPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   
-  // AI Mentor state
-  const [activeTab, setActiveTab] = useState<'tutor' | 'ai-mentor'>('tutor');
+  // Tabs & AI Mentor state
+  const [activeTab, setActiveTab] = useState<'tutor' | 'ai-mentor' | 'notes'>('tutor');
   const [aiMentorMessages, setAiMentorMessages] = useState<AIMentorMessage[]>([]);
   const [aiMentorInput, setAiMentorInput] = useState('');
   const [conversationId, setConversationId] = useState<string>('');
   const aiChatEndRef = useRef<HTMLDivElement>(null);
+
+  // Notes Form State
+  const [resourceType, setResourceType] = useState<'link' | 'snippet'>('link');
+  const [resourceTitle, setResourceTitle] = useState('');
+  const [resourceContent, setResourceContent] = useState('');
+  const notesEndRef = useRef<HTMLDivElement>(null);
 
   // AI Hooks
   const { sendMessage: sendAIMessage, loading: aiMentorLoading } = useMentorChat();
@@ -62,6 +68,11 @@ export default function SessionPage() {
   useEffect(() => {
     aiChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [aiMentorMessages]);
+
+  // Scroll Notes to bottom
+  useEffect(() => {
+    notesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [resources]);
 
   // Initialize conversation ID
   useEffect(() => {
@@ -103,6 +114,12 @@ export default function SessionPage() {
           if (data.session.messages && data.session.messages.length > 0) {
             setInitialMessages(data.session.messages);
           }
+          if (data.session.resources && data.session.resources.length > 0) {
+            setInitialResources(data.session.resources);
+          }
+          if (data.session.aiMessages && data.session.aiMessages.length > 0) {
+            setAiMentorMessages(data.session.aiMessages);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch session:', error);
@@ -124,6 +141,15 @@ export default function SessionPage() {
     }
   };
 
+  const handleShareResource = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (resourceTitle.trim() && resourceContent.trim()) {
+      shareResource(sessionId, resourceType, resourceContent, resourceTitle);
+      setResourceTitle('');
+      setResourceContent('');
+    }
+  };
+
   const handleAIMentorMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiMentorInput.trim() || aiMentorLoading) return;
@@ -131,30 +157,44 @@ export default function SessionPage() {
     const userMessage = aiMentorInput;
     setAiMentorInput('');
 
-    // Add user message to local state
-    setAiMentorMessages((prev) => [...prev, {
+    const newMessages: AIMentorMessage[] = [{
       role: 'user',
       content: userMessage,
       timestamp: new Date().toISOString(),
-    }]);
+    }];
+
+    // Add user message to local state
+    setAiMentorMessages((prev) => [...prev, ...newMessages]);
 
     try {
       const response = await sendAIMessage(userMessage, conversationId);
       if (response && response.mentorResponse) {
-        setAiMentorMessages((prev) => [...prev, {
+        const aiResponse: AIMentorMessage = {
           role: 'assistant',
           content: response.mentorResponse,
           timestamp: new Date().toISOString(),
-        }]);
+        };
+        
+        setAiMentorMessages((prev) => [...prev, aiResponse]);
+        newMessages.push(aiResponse);
       }
     } catch (error: any) {
       console.error('AI mentor error:', error);
-      setAiMentorMessages((prev) => [...prev, {
+      const errorResponse: AIMentorMessage = {
         role: 'assistant',
         content: `Sorry, I encountered an error: ${error.message}`,
         timestamp: new Date().toISOString(),
-      }]);
+      };
+      setAiMentorMessages((prev) => [...prev, errorResponse]);
+      newMessages.push(errorResponse);
     }
+
+    // Persist messages to DB asynchronously
+    fetch(`/api/session/${sessionId}/ai-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: newMessages })
+    }).catch(err => console.error('Failed to persist AI chat:', err));
   };
 
   const triggerCompletionFlow = async () => {
@@ -356,7 +396,7 @@ export default function SessionPage() {
 
         {/* Right Chat Sidebar */}
         <aside className="w-[22rem] bg-white border-l border-slate-200 flex flex-col z-20 shrink-0">
-          <div className="flex border-b border-slate-200 p-2">
+          <div className="flex border-b border-slate-200 p-2 gap-1">
              <button
                 onClick={() => setActiveTab('tutor')}
                 className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
@@ -371,18 +411,27 @@ export default function SessionPage() {
                   activeTab === 'ai-mentor' ? 'bg-violet-600 text-white shadow-lg shadow-violet-100' : 'text-slate-400 hover:text-slate-600'
                 }`}
              >
-                🤖 AI Mentor
+                🤖 AI
+             </button>
+             <button
+                onClick={() => setActiveTab('notes')}
+                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeTab === 'notes' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'text-slate-400 hover:text-slate-600'
+                }`}
+             >
+                📚 Notes
              </button>
           </div>
 
           <div className="flex-1 flex flex-col overflow-hidden relative">
             <AnimatePresence mode="wait">
-              {activeTab === 'tutor' ? (
+              {activeTab === 'tutor' && (
                 <motion.div
                   key="tutor-chat"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex-1 flex flex-col h-full overflow-hidden"
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 flex flex-col h-full overflow-hidden"
                 >
                   <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
                     {messages.length === 0 ? (
@@ -409,7 +458,7 @@ export default function SessionPage() {
                     <div ref={chatEndRef} />
                   </div>
 
-                  <form onSubmit={handleSendMessage} className="p-4 bg-slate-50 border-t border-slate-200">
+                  <form onSubmit={handleSendMessage} className="p-4 bg-slate-50 border-t border-slate-200 shrink-0">
                     <div className="relative">
                       <input
                         type="text"
@@ -420,7 +469,7 @@ export default function SessionPage() {
                       />
                       <button
                         type="submit"
-                        disabled={!isConnected || !chatMessage.trim()}
+                        disabled={!isConnected || !chatMessage.trim() || sessionData?.status === 'completed'}
                         className="absolute right-2 top-2 w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-700 disabled:opacity-30 transition-all shadow-sm"
                       >
                         🚀
@@ -428,12 +477,15 @@ export default function SessionPage() {
                     </div>
                   </form>
                 </motion.div>
-              ) : (
+              )}
+
+              {activeTab === 'ai-mentor' && (
                 <motion.div
                   key="ai-mentor"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex-1 flex flex-col h-full overflow-hidden"
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 flex flex-col h-full overflow-hidden"
                 >
                   <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
                     <div className="bg-violet-50 border border-violet-100 p-4 rounded-2xl mb-2">
@@ -460,7 +512,7 @@ export default function SessionPage() {
                     <div ref={aiChatEndRef} />
                   </div>
 
-                  <form onSubmit={handleAIMentorMessage} className="p-4 bg-slate-50 border-t border-slate-200">
+                  <form onSubmit={handleAIMentorMessage} className="p-4 bg-slate-50 border-t border-slate-200 shrink-0">
                     <div className="relative">
                       <input
                         type="text"
@@ -471,13 +523,127 @@ export default function SessionPage() {
                       />
                       <button
                         type="submit"
-                        disabled={aiMentorLoading || !aiMentorInput.trim()}
+                        disabled={aiMentorLoading || !aiMentorInput.trim() || sessionData?.status === 'completed'}
                         className="absolute right-2 top-2 w-9 h-9 bg-violet-600 text-white rounded-xl flex items-center justify-center hover:bg-violet-700 disabled:opacity-30 transition-all shadow-sm"
                       >
                         🧠
                       </button>
                     </div>
                   </form>
+                </motion.div>
+              )}
+
+              {activeTab === 'notes' && (
+                <motion.div
+                  key="notes"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 flex flex-col h-full overflow-hidden"
+                >
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-200 bg-slate-50">
+                    {resources.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
+                         <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4 text-3xl">📚</div>
+                         <p className="text-[10px] font-black uppercase tracking-widest">No Notes Shared Yet</p>
+                      </div>
+                    ) : (
+                      resources.map((resource, idx) => (
+                        <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-2">
+                           <div className="flex justify-between items-start">
+                             <div className="flex items-center gap-2">
+                               <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] ${resource.resourceType === 'link' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                                 {resource.resourceType === 'link' ? '🔗' : '📝'}
+                               </span>
+                               <p className="font-bold text-slate-900 text-sm">{resource.title}</p>
+                             </div>
+                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                               {new Date(resource.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                             </p>
+                           </div>
+                           
+                           {resource.resourceType === 'link' ? (
+                             <a href={resource.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl block truncate mt-1">
+                               {resource.fileUrl}
+                             </a>
+                           ) : (
+                             <div className="bg-slate-100 text-slate-800 border border-slate-200 text-xs font-mono p-4 rounded-xl mt-2 overflow-x-auto whitespace-pre-wrap max-h-64 scrollbar-thin">
+                               {resource.fileUrl}
+                             </div>
+                           )}
+                           
+                           {resource.uploadedBy === user?.id && (
+                             <p className="text-[9px] font-black text-slate-400 text-right mt-1">Shared by you</p>
+                           )}
+                        </div>
+                      ))
+                    )}
+                    <div ref={notesEndRef} />
+                  </div>
+
+                  <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+                    {sessionData?.status === 'completed' ? (
+                      <div className="text-center p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Session Completed</p>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleShareResource} className="flex flex-col gap-3">
+                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => setResourceType('link')}
+                            className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${resourceType === 'link' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}
+                          >
+                            🔗 Link
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResourceType('snippet')}
+                            className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${resourceType === 'snippet' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}
+                          >
+                            📝 Snippet
+                          </button>
+                        </div>
+                        
+                        <input
+                          type="text"
+                          required
+                          value={resourceTitle}
+                          onChange={(e) => setResourceTitle(e.target.value)}
+                          placeholder="Title (e.g. Google Doc Notes)"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-bold"
+                        />
+                        
+                        {resourceType === 'link' ? (
+                          <input
+                            type="url"
+                            required
+                            value={resourceContent}
+                            onChange={(e) => setResourceContent(e.target.value)}
+                            placeholder="https://..."
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-medium"
+                          />
+                        ) : (
+                          <textarea
+                            required
+                            value={resourceContent}
+                            onChange={(e) => setResourceContent(e.target.value)}
+                            placeholder="Paste your text or code here..."
+                            rows={3}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-medium scrollbar-thin"
+                          />
+                        )}
+                        
+                        <button
+                          type="submit"
+                          disabled={!isConnected || !resourceTitle.trim() || !resourceContent.trim()}
+                          className="w-full py-2.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-600/20"
+                        >
+                          Share Resource
+                        </button>
+                      </form>
+                    )}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

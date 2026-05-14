@@ -7,9 +7,12 @@ interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   messages: any[];
+  resources: any[];
   setInitialMessages: (initialMessages: any[]) => void;
+  setInitialResources: (initialResources: any[]) => void;
   joinSession: (sessionId: string, userId: string, userName: string, role: string) => void;
   sendMessage: (sessionId: string, message: string) => void;
+  shareResource: (sessionId: string, resourceType: string, fileUrl: string, title: string) => void;
   drawOnCanvas: (sessionId: string, drawData: any) => void;
   clearCanvas: (sessionId: string) => void;
   moveCursor: (sessionId: string, x: number, y: number) => void;
@@ -31,6 +34,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
 
   useEffect(() => {
     socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000', {
@@ -52,6 +56,10 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       setMessages((prev) => [...prev, data]);
     });
 
+    socketRef.current.on('receive-resource', (data) => {
+      setResources((prev) => [...prev, data]);
+    });
+
     return () => {
       socketRef.current?.disconnect();
     };
@@ -61,12 +69,20 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     setMessages(initialMessages);
   };
 
+  const setInitialResources = (initialResources: any[]) => {
+    setResources(initialResources);
+  };
+
   const joinSession = (sessionId: string, userId: string, userName: string, role: string) => {
     socketRef.current?.emit('join-session', { sessionId, userId, userName, role });
   };
 
   const sendMessage = (sessionId: string, message: string) => {
     socketRef.current?.emit('send-message', { sessionId, message });
+  };
+
+  const shareResource = (sessionId: string, resourceType: string, fileUrl: string, title: string) => {
+    socketRef.current?.emit('share-resource', { sessionId, resourceType, fileUrl, title });
   };
 
   const drawOnCanvas = (sessionId: string, drawData: any) => {
@@ -133,9 +149,12 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       socket: socketRef.current,
       isConnected,
       messages,
+      resources,
       setInitialMessages,
+      setInitialResources,
       joinSession,
       sendMessage,
+      shareResource,
       drawOnCanvas,
       clearCanvas,
       moveCursor,

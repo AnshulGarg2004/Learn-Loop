@@ -1,4 +1,4 @@
-import { initializeCreativeGroqModel } from '../groq';
+import { initializeDeterministicGroqModel } from '../groq';
 import { createQuizPrompt } from '../prompts';
 
 export interface QuizQuestion {
@@ -26,7 +26,9 @@ export async function generateQuiz(
       throw new Error('Invalid quiz parameters');
     }
 
-    const model = initializeCreativeGroqModel();
+    const model = initializeDeterministicGroqModel().bind({
+      response_format: { type: "json_object" }
+    });
     const prompt = createQuizPrompt();
 
     // Create the chain
@@ -53,13 +55,23 @@ export async function generateQuiz(
       }
     }
 
+    // Clean up trailing commas that LLMs sometimes generate
+    textContent = textContent.replace(/,\s*([\]}])/g, '$1');
+
     // Parse JSON from response
     const jsonMatch = textContent.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('Could not parse quiz response as JSON');
     }
 
-    const result = JSON.parse(jsonMatch[0]);
+    let result;
+    try {
+      result = JSON.parse(jsonMatch[0]);
+    } catch (e) {
+      // If parsing still fails (e.g. unescaped quotes), throw a clear error
+      console.error("JSON Parse Error on:", jsonMatch[0]);
+      throw new Error("AI generated malformed JSON. Please try again.");
+    }
 
     return {
       questions: result.questions || [],

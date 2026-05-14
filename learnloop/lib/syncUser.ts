@@ -13,10 +13,10 @@ export const syncUser = async () => {
     try {
         await connectDb();
 
-        const existingUser = await User.findOne({ clerkId });
+        let existingUser = await User.findOne({ clerkId });
 
         if (existingUser) {
-            console.log("User already exists");
+            console.log("User already exists by clerkId");
             return existingUser;
         }
 
@@ -28,6 +28,19 @@ export const syncUser = async () => {
         const email = clerkUser.emailAddresses[0]?.emailAddress || "";
         const name = `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim();
         const imageUrl = clerkUser.imageUrl || "";
+
+        // Check if user exists by email (e.g. they recreated their Clerk account)
+        if (email) {
+            existingUser = await User.findOne({ email });
+            if (existingUser) {
+                console.log("User exists by email, merging accounts by updating clerkId");
+                existingUser.clerkId = clerkId;
+                existingUser.name = name;
+                existingUser.imageUrl = imageUrl;
+                await existingUser.save();
+                return existingUser;
+            }
+        }
 
         const user = await User.create({
             clerkId,
