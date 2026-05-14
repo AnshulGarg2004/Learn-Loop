@@ -7,6 +7,7 @@ interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   messages: any[];
+  setInitialMessages: (initialMessages: any[]) => void;
   joinSession: (sessionId: string, userId: string, userName: string, role: string) => void;
   sendMessage: (sessionId: string, message: string) => void;
   drawOnCanvas: (sessionId: string, drawData: any) => void;
@@ -55,6 +56,10 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       socketRef.current?.disconnect();
     };
   }, []);
+
+  const setInitialMessages = (initialMessages: any[]) => {
+    setMessages(initialMessages);
+  };
 
   const joinSession = (sessionId: string, userId: string, userName: string, role: string) => {
     socketRef.current?.emit('join-session', { sessionId, userId, userName, role });
@@ -128,6 +133,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       socket: socketRef.current,
       isConnected,
       messages,
+      setInitialMessages,
       joinSession,
       sendMessage,
       drawOnCanvas,

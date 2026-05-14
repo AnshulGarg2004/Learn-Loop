@@ -865,12 +865,20 @@ export default function DashboardPage() {
                         <div key={session._id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
                           <p className="font-bold text-slate-900 text-sm truncate">{session.title}</p>
                           <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">{session.peer}</p>
-                          <button
-                            onClick={() => router.push(`/quiz/${session._id}`)}
-                            className="w-full mt-4 py-2.5 bg-slate-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
-                          >
-                            Review Quiz ✍️
-                          </button>
+                          <div className="flex gap-2 mt-4">
+                            <button
+                              onClick={() => router.push(`/session/${session._id}`)}
+                              className="flex-1 py-2.5 bg-slate-50 text-slate-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                            >
+                              Session Log 📜
+                            </button>
+                            <button
+                              onClick={() => router.push(`/quiz/${session._id}`)}
+                              className="flex-1 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
+                            >
+                              Quiz ✍️
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>

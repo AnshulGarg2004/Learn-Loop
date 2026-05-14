@@ -18,6 +18,12 @@ export interface ISession {
         uploadedAt?: Date;
     }>;
     sessionSummary?: string;
+    messages?: Array<{
+        senderId?: string;
+        senderName?: string;
+        message?: string;
+        timestamp?: Date;
+    }>;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -85,6 +91,12 @@ const sessionSchema = new mongoose.Schema(
         ],
 
         sessionSummary: String,
+        messages: [{
+            senderId: String,
+            senderName: String,
+            message: String,
+            timestamp: { type: Date, default: Date.now }
+        }],
         rating: {
           type: Number,
           min: 1,

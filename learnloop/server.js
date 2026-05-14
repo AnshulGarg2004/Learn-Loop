@@ -122,13 +122,22 @@ app.prepare().then(() => {
     socket.on('send-message', (data) => {
       const { message, sessionId } = data;
       const timestamp = new Date().toISOString();
+      const senderId = socket.data.userId;
+      const senderName = socket.data.userName;
 
       io.to(`session-${sessionId}`).emit('receive-message', {
-        senderId: socket.data.userId,
-        senderName: socket.data.userName,
+        senderId,
+        senderName,
         message,
         timestamp,
       });
+
+      // Save to database asynchronously
+      fetch(`http://${hostname}:${port}/api/session/${sessionId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderId, senderName, message, timestamp })
+      }).catch(err => console.error('[SOCKET] Failed to save message:', err));
     });
 
     // Handle whiteboard drawing

@@ -20,7 +20,7 @@ export default function SessionPage() {
   const params = useParams();
   const { user } = useUser();
   const sessionId = params.id as string;
-  const { isConnected, joinSession, sendMessage, messages, onUserJoined, onUserLeft, endSession, onSessionEnded } = useSocket();
+  const { isConnected, joinSession, sendMessage, messages, setInitialMessages, onUserJoined, onUserLeft, endSession, onSessionEnded } = useSocket();
 
   const [chatMessage, setChatMessage] = useState('');
   const [connectedUsers, setConnectedUsers] = useState<any[]>([]);
@@ -100,6 +100,9 @@ export default function SessionPage() {
         if (res.ok) {
           const data = await res.json();
           setSessionData(data.session);
+          if (data.session.messages && data.session.messages.length > 0) {
+            setInitialMessages(data.session.messages);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch session:', error);
@@ -254,10 +257,10 @@ export default function SessionPage() {
           </div>
           <button
             onClick={handleEndSession}
-            disabled={completingSession}
+            disabled={completingSession || sessionData?.status === 'completed'}
             className="px-6 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all disabled:opacity-50 active:scale-95 shadow-sm"
           >
-            {completingSession ? 'Ending...' : 'End Session'}
+            {sessionData?.status === 'completed' ? 'Session Ended' : completingSession ? 'Ending...' : 'End Session'}
           </button>
         </div>
       </header>

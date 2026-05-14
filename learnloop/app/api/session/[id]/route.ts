@@ -52,6 +52,7 @@ export async function GET(
         startTime: session.startTime,
         endTime: session.endTime,
         sessionType: session.sessionType,
+        messages: session.messages || [],
       },
     });
   } catch (error) {
