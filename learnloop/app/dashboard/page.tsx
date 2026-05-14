@@ -121,6 +121,7 @@ const sidebarOptions = [
   { id: 'active-sessions', label: 'Active Sessions', icon: '🎥' },
   { id: 'credits', label: 'Credits & Wallet', icon: '💎' },
   { id: 'badges', label: 'Badges', icon: '🏆' },
+  { id: 'leaderboard', label: 'Leaderboard', icon: '🥇' },
   { id: 'profile', label: 'My Profile', icon: '👤' },
 ];
 
@@ -433,8 +434,12 @@ export default function DashboardPage() {
                 whileHover={{ x: 4 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  setActiveTab(option.id);
-                  if (window.innerWidth < 1024) setSidebarOpen(false);
+                  if (option.id === 'leaderboard') {
+                    router.push('/leaderboard');
+                  } else {
+                    setActiveTab(option.id);
+                    if (window.innerWidth < 1024) setSidebarOpen(false);
+                  }
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === option.id
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
