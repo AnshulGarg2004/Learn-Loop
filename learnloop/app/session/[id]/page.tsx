@@ -6,6 +6,12 @@ import { useUser } from '@clerk/nextjs';
 import { useSocket } from '@/lib/useSocket';
 import { motion } from 'framer-motion';
 
+interface AIMentorMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
 export default function SessionPage() {
   const params = useParams();
   const { user } = useUser();
@@ -17,11 +23,31 @@ export default function SessionPage() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [sessionData, setSessionData] = useState<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  
+  // AI Mentor state
+  const [activeTab, setActiveTab] = useState<'tutor' | 'ai-mentor'>('tutor');
+  const [aiMentorMessages, setAiMentorMessages] = useState<AIMentorMessage[]>([]);
+  const [aiMentorInput, setAiMentorInput] = useState('');
+  const [aiMentorLoading, setAiMentorLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string>('');
+  const aiChatEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll chat to bottom on new messages
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Scroll AI chat to bottom
+  useEffect(() => {
+    aiChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [aiMentorMessages]);
+
+  // Initialize conversation ID
+  useEffect(() => {
+    if (!conversationId) {
+      setConversationId(`conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+    }
+  }, []);
 
   // Join session when socket connects
   useEffect(() => {
@@ -71,6 +97,54 @@ export default function SessionPage() {
     if (chatMessage.trim()) {
       sendMessage(sessionId, chatMessage);
       setChatMessage('');
+    }
+  };
+
+  const handleAIMentorMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiMentorInput.trim()) return;
+
+    // Add user message to chat
+    const userMsg: AIMentorMessage = {
+      role: 'user',
+      content: aiMentorInput,
+      timestamp: new Date().toISOString(),
+    };
+    setAiMentorMessages((prev) => [...prev, userMsg]);
+    setAiMentorInput('');
+    setAiMentorLoading(true);
+
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId,
+          message: aiMentorInput,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI mentor response');
+      }
+
+      const data = await response.json();
+      const assistantMsg: AIMentorMessage = {
+        role: 'assistant',
+        content: data.data?.mentorResponse || 'Sorry, I could not generate a response.',
+        timestamp: new Date().toISOString(),
+      };
+      setAiMentorMessages((prev) => [...prev, assistantMsg]);
+    } catch (error: any) {
+      console.error('AI mentor error:', error);
+      const errorMsg: AIMentorMessage = {
+        role: 'assistant',
+        content: `Error: ${error.message}`,
+        timestamp: new Date().toISOString(),
+      };
+      setAiMentorMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setAiMentorLoading(false);
     }
   };
 
@@ -150,66 +224,170 @@ export default function SessionPage() {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="w-full lg:w-80 flex flex-col bg-white rounded-xl shadow-lg border border-slate-200"
+          className="w-full lg:w-96 flex flex-col bg-white rounded-xl shadow-lg border border-slate-200"
         >
-          {/* Chat Header */}
-          <div className="bg-linear-to-r from-sky-600 to-fuchsia-600 text-white p-4 rounded-t-xl">
-            <h3 className="font-semibold">Chat</h3>
-            <p className="text-xs opacity-90">{connectedUsers.length + 1} people online</p>
+          {/* Tabs */}
+          <div className="flex border-b border-slate-200">
+            <button
+              onClick={() => setActiveTab('tutor')}
+              className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
+                activeTab === 'tutor'
+                  ? 'text-fuchsia-600 border-b-2 border-fuchsia-600'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              👨‍🏫 Tutor Chat
+            </button>
+            <button
+              onClick={() => setActiveTab('ai-mentor')}
+              className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
+                activeTab === 'ai-mentor'
+                  ? 'text-sky-600 border-b-2 border-sky-600'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🤖 AI Mentor
+            </button>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-slate-400 text-center">No messages yet. Start the conversation!</p>
+          {/* Tutor Chat Tab */}
+          {activeTab === 'tutor' && (
+            <>
+              {/* Chat Header */}
+              <div className="bg-linear-to-r from-sky-600 to-fuchsia-600 text-white p-4">
+                <h3 className="font-semibold">Tutor Chat</h3>
+                <p className="text-xs opacity-90">{connectedUsers.length + 1} people online</p>
               </div>
-            ) : (
-              messages.map((msg, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                      msg.senderId === user?.id
-                        ? 'bg-fuchsia-600 text-white'
-                        : 'bg-slate-100 text-slate-900'
-                    }`}
-                  >
-                    <p className="text-xs opacity-75 mb-1">{msg.senderName}</p>
-                    <p>{msg.message}</p>
-                    <p className="text-xs opacity-50 mt-1">
-                      {new Date(msg.timestamp).toLocaleTimeString()}
-                    </p>
-                  </div>
-                </motion.div>
-              ))
-            )}
-            <div ref={chatEndRef} />
-          </div>
 
-          {/* Message Input */}
-          <form onSubmit={handleSendMessage} className="border-t border-slate-200 p-4">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
-              />
-              <button
-                type="submit"
-                disabled={!isConnected}
-                className="px-4 py-2 bg-fuchsia-600 text-white rounded-lg font-medium text-sm hover:bg-fuchsia-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Send
-              </button>
-            </div>
-          </form>
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-96">
+                {messages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-sm text-slate-400 text-center">No messages yet. Start the conversation!</p>
+                  </div>
+                ) : (
+                  messages.map((msg, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
+                          msg.senderId === user?.id
+                            ? 'bg-fuchsia-600 text-white'
+                            : 'bg-slate-100 text-slate-900'
+                        }`}
+                      >
+                        <p className="text-xs opacity-75 mb-1">{msg.senderName}</p>
+                        <p>{msg.message}</p>
+                        <p className="text-xs opacity-50 mt-1">
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <form onSubmit={handleSendMessage} className="border-t border-slate-200 p-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!isConnected}
+                    className="px-4 py-2 bg-fuchsia-600 text-white rounded-lg font-medium text-sm hover:bg-fuchsia-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Send
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
+
+          {/* AI Mentor Tab */}
+          {activeTab === 'ai-mentor' && (
+            <>
+              {/* Chat Header */}
+              <div className="bg-linear-to-r from-sky-500 to-cyan-500 text-white p-4">
+                <h3 className="font-semibold">AI Mentor</h3>
+                <p className="text-xs opacity-90">Your personal AI tutor</p>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-96">
+                {aiMentorMessages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-sm text-slate-400 text-center">Ask the AI Mentor for help!</p>
+                  </div>
+                ) : (
+                  aiMentorMessages.map((msg, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
+                          msg.role === 'user'
+                            ? 'bg-sky-600 text-white'
+                            : 'bg-cyan-100 text-slate-900'
+                        }`}
+                      >
+                        <p>{msg.content}</p>
+                        <p className="text-xs opacity-50 mt-1">
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+                {aiMentorLoading && (
+                  <motion.div
+                    animate={{ opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="flex justify-start"
+                  >
+                    <div className="px-3 py-2 rounded-lg bg-cyan-100 text-slate-900">
+                      <p className="text-sm">AI Mentor is thinking...</p>
+                    </div>
+                  </motion.div>
+                )}
+                <div ref={aiChatEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <form onSubmit={handleAIMentorMessage} className="border-t border-slate-200 p-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={aiMentorInput}
+                    onChange={(e) => setAiMentorInput(e.target.value)}
+                    placeholder="Ask the AI mentor..."
+                    disabled={aiMentorLoading}
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100"
+                  />
+                  <button
+                    type="submit"
+                    disabled={aiMentorLoading}
+                    className="px-4 py-2 bg-sky-600 text-white rounded-lg font-medium text-sm hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Send
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
         </motion.div>
       </div>
     </div>

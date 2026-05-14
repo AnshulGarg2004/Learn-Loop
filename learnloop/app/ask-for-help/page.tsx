@@ -129,24 +129,42 @@ export default function AskForHelpPage() {
 
       console.log("Submitting form:", formData);
 
-      // Build payload - exclude empty subject
+      // Analyze the doubt first to extract metadata
+      let analysisData: any = null;
+      try {
+        const analysisRes = await fetch("/api/ai/analyze-doubt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ doubtText: formData.description }),
+        });
+
+        if (analysisRes.ok) {
+          const analysisResult = await analysisRes.json();
+          analysisData = analysisResult.data;
+          console.log("Doubt analysis:", analysisData);
+        }
+      } catch (analysisErr) {
+        console.warn("Doubt analysis failed, proceeding without AI analysis:", analysisErr);
+      }
+
+      // Build payload - use AI analysis if available, otherwise use form data
       const payload = {
         title: formData.title,
         description: formData.description,
-        urgencyLevel: formData.urgencyLevel,
+        urgencyLevel: analysisData?.urgency || formData.urgencyLevel,
         preferredLanguage: formData.preferredLanguage,
         creditsOffered: formData.creditsOffered,
         sessionDuration: formData.sessionDuration,
+        aiAnalysis: analysisData || null, // Store the AI analysis for reference
       } as any;
 
-      // Only add subject if it's not empty
-      if (formData.subject) {
-        payload.subject = formData.subject;
+      // Use AI-extracted subject/topic if available, otherwise use form data
+      if (analysisData?.subject || formData.subject) {
+        payload.subject = analysisData?.subject || formData.subject;
       }
 
-      // Only add topic if it's not empty
-      if (formData.topic) {
-        payload.topic = formData.topic;
+      if (analysisData?.topic || formData.topic) {
+        payload.topic = analysisData?.topic || formData.topic;
       }
 
       const response = await fetch("/api/help-request", {

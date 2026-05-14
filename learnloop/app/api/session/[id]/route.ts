@@ -5,12 +5,13 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await ConnectDB();
 
-    const sessionId = params.id;
+    const { id } = await params;
+    const sessionId = id;
 
     // Fetch session with populated references
     const session = await Sessions.findById(sessionId)

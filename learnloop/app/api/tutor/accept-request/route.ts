@@ -1,8 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
-import { connectDB } from '@/lib/connectDb';
-import Users from '@/app/models/user.model';
-import HelpRequest from '@/app/models/helpRequest.model';
-import Sessions from '@/app/models/sesion.model';
+import { ConnectDB } from '@/lib/connectDb';
+import Users from '@/models/user.model';
+import HelpRequest from '@/models/helpRequest.model';
+import Sessions from '@/models/sesion.model';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       );
     }
 
-    await connectDB();
+    await ConnectDB();
 
     const { helpRequestId } = await req.json();
 
