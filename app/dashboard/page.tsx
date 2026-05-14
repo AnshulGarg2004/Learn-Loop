@@ -97,6 +97,7 @@ interface DashboardResponse {
 
 const sidebarOptions = [
   { id: 'overview', label: 'Dashboard', icon: '📊' },
+  { id: 'find-tutoring', label: 'Find Tutoring', icon: '🎯' },
   { id: 'posted-questions', label: 'Posted Questions', icon: '❓' },
   { id: 'answered-questions', label: 'Answered Questions', icon: '✅' },
   { id: 'active-sessions', label: 'Active Sessions', icon: '🎥' },
@@ -111,6 +112,8 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
+  const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
+  const [acceptingQuestion, setAcceptingQuestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -150,6 +153,26 @@ export default function DashboardPage() {
     loadDashboard();
   }, [isLoaded, userId, router]);
 
+  // Fetch available questions when tab changes to find-tutoring
+  useEffect(() => {
+    if (activeTab === 'find-tutoring') {
+      const fetchAvailableQuestions = async () => {
+        try {
+          const response = await fetch('/api/available-questions', {
+            cache: 'no-store',
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setAvailableQuestions(data.questions);
+          }
+        } catch (err) {
+          console.error('Failed to fetch available questions:', err);
+        }
+      };
+      fetchAvailableQuestions();
+    }
+  }, [activeTab]);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -163,6 +186,30 @@ export default function DashboardPage() {
   const itemVariants = {
     hidden: { opacity: 0, y: 12 },
     show: { opacity: 1, y: 0 },
+  };
+
+  const handleAcceptQuestion = async (questionId: string) => {
+    try {
+      setAcceptingQuestion(questionId);
+      const response = await fetch('/api/tutor/accept-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ helpRequestId: questionId }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'Failed to accept question');
+      }
+
+      const data = await response.json();
+      // Redirect to session page
+      router.push(`/session/${data.session._id}`);
+    } catch (err: any) {
+      console.error('Error accepting question:', err);
+      alert(err.message || 'Failed to accept question');
+      setAcceptingQuestion(null);
+    }
   };
 
   if (!isLoaded || loading) {
@@ -407,6 +454,72 @@ export default function DashboardPage() {
                   </div>
                 </motion.div>
               </div>
+            )}
+
+            {activeTab === 'find-tutoring' && (
+              <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-4">
+                <div className="bg-white p-6 rounded-xl border border-amber-200 shadow-sm">
+                  <h3 className="text-xl font-bold text-gray-900 mb-6">🎯 Available Tutoring Opportunities</h3>
+                  <div className="space-y-4">
+                    {availableQuestions.length > 0 ? (
+                      availableQuestions.map((question) => (
+                        <motion.div
+                          key={question._id}
+                          variants={itemVariants}
+                          className="p-4 bg-amber-50 rounded-lg border border-amber-200 hover:shadow-md transition-all"
+                        >
+                          <div className="flex flex-col gap-4">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-gray-900">{question.title}</h4>
+                              <p className="text-sm text-gray-600 mt-1">{question.description}</p>
+                              <div className="flex flex-wrap gap-3 mt-3">
+                                <span className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded">{question.subject}</span>
+                                {question.topic && (
+                                  <span className="text-xs bg-fuchsia-100 text-fuchsia-700 px-2 py-1 rounded">{question.topic}</span>
+                                )}
+                                <span
+                                  className={`text-xs px-2 py-1 rounded font-semibold ${
+                                    question.urgencyLevel === 'high'
+                                      ? 'bg-red-100 text-red-700'
+                                      : question.urgencyLevel === 'medium'
+                                        ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-emerald-100 text-emerald-700'
+                                  }`}
+                                >
+                                  {question.urgencyLevel} urgency
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-t border-amber-200 pt-4">
+                              <div className="space-y-1 text-sm">
+                                <p className="text-gray-600">
+                                  <span className="font-semibold">{question.student.name}</span> is looking for help
+                                </p>
+                                <div className="flex gap-4 text-xs text-gray-500">
+                                  <span>📅 {question.createdAt}</span>
+                                  <span>👥 {question.applicationsCount} applicants</span>
+                                  <span className="text-amber-600 font-semibold">+{question.creditsOffered} credits</span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleAcceptQuestion(question._id)}
+                                disabled={acceptingQuestion === question._id}
+                                className="px-4 py-2 bg-linear-to-r from-amber-600 to-orange-600 text-white rounded-lg font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all whitespace-nowrap"
+                              >
+                                {acceptingQuestion === question._id ? '⏳ Accepting...' : '✓ Accept & Start'}
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50 p-6 text-sm text-gray-600">
+                        No available questions at the moment. Check back later!
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
             )}
 
             {activeTab === 'posted-questions' && (
