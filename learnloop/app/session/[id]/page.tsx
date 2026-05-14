@@ -7,6 +7,7 @@ import { useSocket } from '@/lib/useSocket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMentorChat, useSummaryGenerator, useQuizGenerator } from '@/lib/useGenAIHooks';
 import { useRouter } from 'next/navigation';
+import Whiteboard from '@/components/whiteboard';
 
 interface AIMentorMessage {
   role: 'user' | 'assistant';
@@ -18,7 +19,7 @@ export default function SessionPage() {
   const params = useParams();
   const { user } = useUser();
   const sessionId = params.id as string;
-  const { isConnected, joinSession, sendMessage, messages, onUserJoined, onUserLeft } = useSocket();
+  const { isConnected, joinSession, sendMessage, messages, onUserJoined, onUserLeft, endSession, onSessionEnded } = useSocket();
 
   const [chatMessage, setChatMessage] = useState('');
   const [connectedUsers, setConnectedUsers] = useState<any[]>([]);
@@ -38,6 +39,10 @@ export default function SessionPage() {
   const { sendMessage: sendAIMessage, loading: aiMentorLoading } = useMentorChat();
   const { generate: generateSummary, loading: summarizing } = useSummaryGenerator();
   const { generate: generateQuiz, loading: quizzing } = useQuizGenerator();
+
+  const initials = user?.firstName && user?.lastName 
+    ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() 
+    : user?.firstName?.slice(0, 2).toUpperCase() || 'U';
 
   // Completion state
   const [showSummaryModal, setShowSummaryModal] = useState(false);
@@ -146,313 +151,382 @@ export default function SessionPage() {
     }
   };
 
-  const handleEndSession = async () => {
-    if (!confirm('Are you sure you want to end this session?')) return;
-
+  const triggerCompletionFlow = async () => {
     setCompletingSession(true);
     try {
-      // 1. Mark session as completed
-      await fetch(`/api/session/${sessionId}/complete`, { method: 'POST' });
-
-      // 2. Build transcript
+      // 1. Build transcript
       const transcript = messages.map(m => `${m.senderName}: ${m.message}`).join('\n');
 
-      // 3. Generate AI Summary
+      // 2. Generate AI Summary
       const summaryData = await generateSummary(transcript || "No transcript available.");
       setSummary(summaryData);
 
-      // 4. Generate AI Quiz
+      // 3. Generate AI Quiz
       const quizData = await generateQuiz(sessionData?.topic || "General Study", "medium", 5);
       setQuiz(quizData);
 
       setShowSummaryModal(true);
     } catch (error) {
       console.error('Failed to end session:', error);
-      alert('Failed to end session properly. Please try again.');
     } finally {
       setCompletingSession(false);
     }
   };
 
+  const handleEndSession = async () => {
+    if (!confirm('Are you sure you want to end this session?')) return;
+
+    try {
+      // 1. Mark session as completed in DB
+      await fetch(`/api/session/${sessionId}/complete`, { method: 'POST' });
+      
+      // 2. Notify other participants via socket
+      endSession(sessionId);
+      
+      // 3. Run completion flow locally
+      await triggerCompletionFlow();
+    } catch (error) {
+      console.error('Failed to end session:', error);
+      alert('Failed to end session properly. Please try again.');
+    }
+  };
+
+  // Listen for session ended from others
+  useEffect(() => {
+    onSessionEnded(() => {
+      if (!completingSession && !showSummaryModal) {
+        triggerCompletionFlow();
+      }
+    });
+  }, [onSessionEnded, messages, sessionData, completingSession, showSummaryModal]);
+
+  const [viewMode, setViewMode] = useState<'video' | 'whiteboard'>('video');
+
   if (sessionLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-linear-to-br from-sky-50 to-fuchsia-50">
+      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 gap-4">
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-          className="w-16 h-16 border-4 border-fuchsia-200 border-t-fuchsia-600 rounded-full"
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+          className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full"
         />
+        <p className="text-slate-500 font-bold text-sm animate-pulse tracking-widest uppercase">Initializing Session...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4">
-        {/* Video/Whiteboard Area */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex-1 flex flex-col gap-4"
-        >
-          {/* Session Header */}
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold bg-linear-to-r from-sky-600 to-fuchsia-600 bg-clip-text text-transparent">
-                  Tutoring Session
-                </h1>
-                <p className="text-sm text-slate-500 mt-1">
-                  {sessionData?.subject || 'Loading...'} • {sessionData?.topic || 'Loading...'}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  isConnected
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
-                }`}>
-                  {isConnected ? '● Connected' : '● Disconnected'}
-                </span>
-                <button
-                  onClick={handleEndSession}
-                  disabled={completingSession}
-                  className="px-4 py-1 bg-red-600 text-white rounded-full text-sm font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
+    <div className="flex flex-col h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
+      {/* Top Navigation / Header */}
+      <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between z-30 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-indigo-100">
+            LL
+          </div>
+          <div>
+            <h1 className="text-sm font-black tracking-tight text-slate-900 leading-none">
+              {sessionData?.topic || 'Tutoring Session'}
+            </h1>
+            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-1">
+              {sessionData?.subject || 'Learning Hub'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200">
+            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              {isConnected ? 'Network Stable' : 'Connecting...'}
+            </span>
+          </div>
+          <button
+            onClick={handleEndSession}
+            disabled={completingSession}
+            className="px-6 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all disabled:opacity-50 active:scale-95 shadow-sm"
+          >
+            {completingSession ? 'Ending...' : 'End Session'}
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Control Bar (Vertical) */}
+        <nav className="w-20 bg-white border-r border-slate-200 flex flex-col items-center py-6 gap-6 z-20 shrink-0">
+          <button
+            onClick={() => setViewMode('video')}
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+              viewMode === 'video' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:bg-slate-50'
+            }`}
+            title="Video Call"
+          >
+            <span className="text-xl">🎥</span>
+          </button>
+          <button
+            onClick={() => setViewMode('whiteboard')}
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+              viewMode === 'whiteboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:bg-slate-50'
+            }`}
+            title="Whiteboard"
+          >
+            <span className="text-xl">🎨</span>
+          </button>
+          <div className="mt-auto flex flex-col gap-4 items-center">
+            <div className="w-10 h-10 rounded-full border-2 border-indigo-100 p-0.5 overflow-hidden">
+               <img src={user?.imageUrl} alt="Me" className="w-full h-full object-cover rounded-full" />
+            </div>
+          </div>
+        </nav>
+
+        {/* Main Workspace Stage */}
+        <main className="flex-1 relative flex flex-col min-w-0 bg-slate-50">
+          <div className="flex-1 p-6 overflow-hidden">
+            <AnimatePresence mode="wait">
+              {viewMode === 'video' ? (
+                <motion.div
+                  key="video"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  className="w-full h-full bg-slate-900 rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col border-4 border-white"
                 >
-                  {completingSession ? 'Ending...' : 'End Session'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Video Conference Placeholder */}
-          <div className="flex-1 bg-linear-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg flex items-center justify-center min-h-96 text-white border border-slate-700">
-            <div className="text-center">
-              <div className="mb-4 text-6xl">🎥</div>
-              <h2 className="text-xl font-semibold mb-2">Video Conference</h2>
-              <p className="text-slate-400 mb-4">Implement WebRTC/Agora here</p>
-              <p className="text-sm text-slate-500">Connected users: {connectedUsers.length + 1}</p>
-              {connectedUsers.map((u) => (
-                <p key={u.socketId} className="text-xs text-slate-400">
-                  • {u.userName} ({u.role})
-                </p>
-              ))}
-            </div>
-          </div>
-
-          {/* Whiteboard */}
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-slate-200">
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">Shared Whiteboard</h3>
-            <div className="w-full h-64 bg-white border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center">
-              <div className="text-center text-slate-400">
-                <p className="text-lg mb-2">🎨</p>
-                <p className="text-sm">Whiteboard canvas (implement with Canvas API)</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Chat Panel */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="w-full lg:w-96 flex flex-col bg-white rounded-xl shadow-lg border border-slate-200"
-        >
-          {/* Tabs */}
-          <div className="flex border-b border-slate-200">
-            <button
-              onClick={() => setActiveTab('tutor')}
-              className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
-                activeTab === 'tutor'
-                  ? 'text-fuchsia-600 border-b-2 border-fuchsia-600'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              👨‍🏫 Tutor Chat
-            </button>
-            <button
-              onClick={() => setActiveTab('ai-mentor')}
-              className={`flex-1 px-4 py-3 font-medium text-sm transition-colors ${
-                activeTab === 'ai-mentor'
-                  ? 'text-sky-600 border-b-2 border-sky-600'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              🤖 AI Mentor
-            </button>
-          </div>
-
-          {/* Tutor Chat Tab */}
-          {activeTab === 'tutor' && (
-            <>
-              {/* Chat Header */}
-              <div className="bg-linear-to-r from-sky-600 to-fuchsia-600 text-white p-4">
-                <h3 className="font-semibold">Tutor Chat</h3>
-                <p className="text-xs opacity-90">{connectedUsers.length + 1} people online</p>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-96">
-                {messages.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-sm text-slate-400 text-center">No messages yet. Start the conversation!</p>
-                  </div>
-                ) : (
-                  messages.map((msg, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`flex ${msg.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                          msg.senderId === user?.id
-                            ? 'bg-fuchsia-600 text-white'
-                            : 'bg-slate-100 text-slate-900'
-                        }`}
-                      >
-                        <p className="text-xs opacity-75 mb-1">{msg.senderName}</p>
-                        <p>{msg.message}</p>
-                        <p className="text-xs opacity-50 mt-1">
-                          {new Date(msg.timestamp).toLocaleTimeString()}
-                        </p>
+                  {/* Video Grid */}
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
+                    {/* Primary User (Local) */}
+                    <div className="relative bg-slate-800 rounded-3xl overflow-hidden border border-slate-700 aspect-video flex items-center justify-center">
+                      <div className="text-center">
+                         <div className="w-16 h-16 rounded-full bg-indigo-600 mx-auto mb-3 flex items-center justify-center text-white font-black text-xl">
+                            {initials}
+                         </div>
+                         <p className="text-[10px] font-black text-white uppercase tracking-widest">You (Self)</p>
                       </div>
-                    </motion.div>
-                  ))
-                )}
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Message Input */}
-              <form onSubmit={handleSendMessage} className="border-t border-slate-200 p-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!isConnected}
-                    className="px-4 py-2 bg-fuchsia-600 text-white rounded-lg font-medium text-sm hover:bg-fuchsia-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Send
-                  </button>
-                </div>
-              </form>
-            </>
-          )}
-
-          {/* AI Mentor Tab */}
-          {activeTab === 'ai-mentor' && (
-            <>
-              {/* Chat Header */}
-              <div className="bg-linear-to-r from-sky-500 to-cyan-500 text-white p-4">
-                <h3 className="font-semibold">AI Mentor</h3>
-                <p className="text-xs opacity-90">Your personal AI tutor</p>
-              </div>
-
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-96">
-                {aiMentorMessages.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-sm text-slate-400 text-center">Ask the AI Mentor for help!</p>
-                  </div>
-                ) : (
-                  aiMentorMessages.map((msg, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                          msg.role === 'user'
-                            ? 'bg-sky-600 text-white'
-                            : 'bg-cyan-100 text-slate-900'
-                        }`}
-                      >
-                        <p>{msg.content}</p>
-                        <p className="text-xs opacity-50 mt-1">
-                          {new Date(msg.timestamp).toLocaleTimeString()}
-                        </p>
+                      <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/40 backdrop-blur-md rounded-lg border border-white/10">
+                        <p className="text-[10px] font-black text-white uppercase tracking-widest">Mic Active</p>
                       </div>
-                    </motion.div>
-                  ))
-                )}
-                {aiMentorLoading && (
-                  <motion.div
-                    animate={{ opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="flex justify-start"
-                  >
-                    <div className="px-3 py-2 rounded-lg bg-cyan-100 text-slate-900">
-                      <p className="text-sm">AI Mentor is thinking...</p>
                     </div>
-                  </motion.div>
-                )}
-                <div ref={aiChatEndRef} />
-              </div>
 
-              {/* Message Input */}
-              <form onSubmit={handleAIMentorMessage} className="border-t border-slate-200 p-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={aiMentorInput}
-                    onChange={(e) => setAiMentorInput(e.target.value)}
-                    placeholder="Ask the AI mentor..."
-                    disabled={aiMentorLoading}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100"
-                  />
-                  <button
-                    type="submit"
-                    disabled={aiMentorLoading}
-                    className="px-4 py-2 bg-sky-600 text-white rounded-lg font-medium text-sm hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Send
-                  </button>
-                </div>
-              </form>
-            </>
-          )}
-        </motion.div>
+                    {/* Remote Users */}
+                    {connectedUsers.map((u) => (
+                      <div key={u.socketId} className="relative bg-slate-800 rounded-3xl overflow-hidden border border-slate-700 aspect-video flex items-center justify-center">
+                        <div className="text-center">
+                           <div className="w-16 h-16 rounded-full bg-indigo-500 mx-auto mb-3 flex items-center justify-center text-white font-black text-xl">
+                              {u.userName.charAt(0).toUpperCase()}
+                           </div>
+                           <p className="text-[10px] font-black text-white uppercase tracking-widest">{u.userName} ({u.role})</p>
+                        </div>
+                        <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/40 backdrop-blur-md rounded-lg border border-white/10">
+                          <p className="text-[10px] font-black text-white uppercase tracking-widest">Participant</p>
+                        </div>
+                      </div>
+                    ))}
+
+                    {connectedUsers.length === 0 && (
+                      <div className="relative bg-slate-800/50 rounded-3xl overflow-hidden border border-slate-700 border-dashed aspect-video flex flex-col items-center justify-center">
+                         <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Waiting for others...</p>
+                         <p className="text-xs text-slate-600 mt-2">Only you are in this room</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* On-video Controls */}
+                  <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 px-8 py-4 bg-black/60 backdrop-blur-2xl rounded-full border border-white/10 shadow-2xl">
+                    <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all">🎤</button>
+                    <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all">📽️</button>
+                    <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all">🖥️</button>
+                    <div className="w-px h-6 bg-white/20 mx-2" />
+                    <button onClick={handleEndSession} className="w-10 h-10 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center transition-all shadow-lg shadow-rose-500/20">📵</button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="whiteboard"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  className="w-full h-full bg-white rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col border border-slate-200"
+                >
+                   <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                      <div className="flex items-center gap-3">
+                         <span className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">🎨</span>
+                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">Collaborative Whiteboard</h3>
+                      </div>
+                      <div className="flex gap-2">
+                         <span className="px-3 py-1 bg-indigo-50 rounded-full text-[9px] font-black text-indigo-600 uppercase tracking-tighter">Live Syncing</span>
+                      </div>
+                   </div>
+                   <div className="flex-1 relative">
+                      <Whiteboard 
+                        sessionId={sessionId} 
+                        role={sessionData?.tutor?.clerkId === user?.id ? 'tutor' : 'student'} 
+                      />
+                   </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </main>
+
+        {/* Right Chat Sidebar */}
+        <aside className="w-[22rem] bg-white border-l border-slate-200 flex flex-col z-20 shrink-0">
+          <div className="flex border-b border-slate-200 p-2">
+             <button
+                onClick={() => setActiveTab('tutor')}
+                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeTab === 'tutor' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:text-slate-600'
+                }`}
+             >
+                💬 Chat
+             </button>
+             <button
+                onClick={() => setActiveTab('ai-mentor')}
+                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeTab === 'ai-mentor' ? 'bg-violet-600 text-white shadow-lg shadow-violet-100' : 'text-slate-400 hover:text-slate-600'
+                }`}
+             >
+                🤖 AI Mentor
+             </button>
+          </div>
+
+          <div className="flex-1 flex flex-col overflow-hidden relative">
+            <AnimatePresence mode="wait">
+              {activeTab === 'tutor' ? (
+                <motion.div
+                  key="tutor-chat"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex-1 flex flex-col h-full overflow-hidden"
+                >
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
+                    {messages.length === 0 ? (
+                      <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
+                         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 text-3xl">📭</div>
+                         <p className="text-[10px] font-black uppercase tracking-widest">No Messages Yet</p>
+                      </div>
+                    ) : (
+                      messages.map((msg, idx) => (
+                        <div key={idx} className={`flex flex-col ${msg.senderId === user?.id ? 'items-end' : 'items-start'}`}>
+                          <div className={`px-4 py-2.5 rounded-2xl text-sm font-medium max-w-[85%] ${
+                            msg.senderId === user?.id
+                              ? 'bg-indigo-600 text-white rounded-br-none shadow-md'
+                              : 'bg-slate-100 text-slate-900 rounded-bl-none'
+                          }`}>
+                            {msg.message}
+                          </div>
+                          <span className="text-[9px] font-bold text-slate-400 mt-2 px-1">
+                            {msg.senderName} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  <form onSubmit={handleSendMessage} className="p-4 bg-slate-50 border-t border-slate-200">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={chatMessage}
+                        onChange={(e) => setChatMessage(e.target.value)}
+                        placeholder="Say something nice..."
+                        className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all font-medium pr-12"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!isConnected || !chatMessage.trim()}
+                        className="absolute right-2 top-2 w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-700 disabled:opacity-30 transition-all shadow-sm"
+                      >
+                        🚀
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="ai-mentor"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex-1 flex flex-col h-full overflow-hidden"
+                >
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
+                    <div className="bg-violet-50 border border-violet-100 p-4 rounded-2xl mb-2">
+                       <p className="text-[10px] font-black text-violet-600 uppercase tracking-widest mb-1">AI System Ready</p>
+                       <p className="text-xs text-violet-800 font-medium leading-relaxed">I'm analyzing the session in real-time. Ask me anything about the topics discussed!</p>
+                    </div>
+                    
+                    {aiMentorMessages.map((msg, idx) => (
+                      <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        <div className={`px-4 py-2.5 rounded-2xl text-sm font-medium max-w-[85%] ${
+                          msg.role === 'user'
+                            ? 'bg-violet-600 text-white rounded-br-none shadow-md'
+                            : 'bg-white border border-violet-200 text-slate-900 rounded-bl-none shadow-sm'
+                        }`}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))}
+                    {aiMentorLoading && (
+                      <div className="flex flex-col items-start animate-pulse">
+                         <div className="px-4 py-2.5 rounded-2xl bg-slate-100 text-slate-400 text-sm font-bold uppercase tracking-widest">AI is thinking...</div>
+                      </div>
+                    )}
+                    <div ref={aiChatEndRef} />
+                  </div>
+
+                  <form onSubmit={handleAIMentorMessage} className="p-4 bg-slate-50 border-t border-slate-200">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={aiMentorInput}
+                        onChange={(e) => setAiMentorInput(e.target.value)}
+                        placeholder="Deep dive into this topic..."
+                        className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-600 transition-all font-medium pr-12"
+                      />
+                      <button
+                        type="submit"
+                        disabled={aiMentorLoading || !aiMentorInput.trim()}
+                        className="absolute right-2 top-2 w-9 h-9 bg-violet-600 text-white rounded-xl flex items-center justify-center hover:bg-violet-700 disabled:opacity-30 transition-all shadow-sm"
+                      >
+                        🧠
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </aside>
       </div>
 
       {/* Summary Modal */}
       <AnimatePresence>
         {showSummaryModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="bg-white rounded-[3rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white"
             >
-              <div className="p-6 border-b border-slate-100 bg-linear-to-r from-sky-600 to-fuchsia-600 text-white">
-                <h2 className="text-2xl font-bold">Session Completed! 🎉</h2>
-                <p className="opacity-90">Great job on your learning session.</p>
+              <div className="p-10 border-b border-slate-100 bg-linear-to-br from-indigo-600 to-violet-700 text-white relative">
+                <div className="absolute top-0 right-0 p-10 opacity-10 text-9xl font-black italic">LEARN</div>
+                <h2 className="text-4xl font-black tracking-tight mb-2 relative z-10">Session Complete! 🎉</h2>
+                <p className="font-bold opacity-80 uppercase tracking-[0.3em] text-xs relative z-10">Knowledge Sync Successful</p>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="flex-1 overflow-y-auto p-10 space-y-10">
                 {/* Summary Section */}
-                <section>
-                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                    <span>📝</span> AI Summary
-                  </h3>
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <p className="text-slate-700 leading-relaxed italic">
-                      "{summary?.conciseSummary || 'Generating summary...'}"
+                <section className="space-y-4">
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-xl">📝</div>
+                     <h3 className="text-xl font-black text-slate-900 tracking-tight">AI Insights</h3>
+                  </div>
+                  <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
+                    <p className="text-slate-600 leading-relaxed font-medium italic">
+                      "{summary?.conciseSummary || 'Generating your personalized summary...'}"
                     </p>
                     {summary?.importantConcepts && (
-                      <div className="mt-4 flex flex-wrap gap-2">
+                      <div className="mt-6 pt-6 border-t border-slate-200 flex flex-wrap gap-2">
                         {summary.importantConcepts.map((c: string, i: number) => (
-                          <span key={i} className="px-2 py-1 bg-sky-100 text-sky-700 rounded text-xs font-medium">
+                          <span key={i} className="px-4 py-1.5 bg-white border border-slate-200 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">
                             {c}
                           </span>
                         ))}
@@ -461,36 +535,37 @@ export default function SessionPage() {
                   </div>
                 </section>
 
-                {/* Next Steps */}
-                <section>
-                  <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                    <span>🚀</span> Next Steps
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Actions */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center text-xl">🚀</div>
+                     <h3 className="text-xl font-black text-slate-900 tracking-tight">Next Milestones</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button
                       onClick={() => router.push('/dashboard')}
-                      className="p-4 bg-white border-2 border-slate-200 rounded-xl hover:border-fuchsia-500 transition-all text-left group"
+                      className="p-6 bg-white border-2 border-slate-100 rounded-3xl hover:border-indigo-500 hover:shadow-xl transition-all text-left group"
                     >
-                      <p className="font-bold text-slate-800 group-hover:text-fuchsia-600">Back to Dashboard</p>
-                      <p className="text-xs text-slate-500">Return to your learning hub</p>
+                      <p className="font-black text-slate-900 uppercase tracking-widest text-[10px] mb-1 group-hover:text-indigo-600">Hub</p>
+                      <p className="text-lg font-black tracking-tight">Back to Dashboard</p>
                     </button>
                     <button
                       onClick={() => router.push(`/quiz/${sessionId}`)}
-                      className="p-4 bg-linear-to-br from-fuchsia-600 to-pink-600 rounded-xl text-white hover:shadow-lg transition-all text-left"
+                      className="p-6 bg-indigo-600 rounded-3xl text-white hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-200 transition-all text-left group"
                     >
-                      <p className="font-bold">Take the Quiz</p>
-                      <p className="text-xs opacity-90">Test what you just learned!</p>
+                      <p className="font-black text-white/60 uppercase tracking-widest text-[10px] mb-1">Challenge</p>
+                      <p className="text-lg font-black tracking-tight">Take the AI Quiz</p>
                     </button>
                   </div>
                 </section>
               </div>
 
-              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-center">
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="px-6 py-2 bg-slate-800 text-white rounded-lg font-semibold"
+                  className="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black transition-all active:scale-95 shadow-lg"
                 >
-                  Close & Exit
+                  Close & Finish
                 </button>
               </div>
             </motion.div>

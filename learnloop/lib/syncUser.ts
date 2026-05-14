@@ -1,6 +1,7 @@
 import User from "@/models/user.model"
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { ConnectDB } from "./connectDb";
+import connectDb from "./connectDb";
+
 
 export const syncUser = async () => {
     const { userId: clerkId } = await auth();
@@ -10,7 +11,7 @@ export const syncUser = async () => {
     }
 
     try {
-        await ConnectDB();
+        await connectDb();
 
         const existingUser = await User.findOne({ clerkId });
 

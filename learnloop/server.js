@@ -35,10 +35,27 @@ app.prepare().then(() => {
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
 
+    // Register user for personal notifications
+    socket.on('register-user', (userId) => {
+      socket.join(`user-${userId}`);
+      socket.data.userId = userId;
+      console.log(`User ${userId} registered for notifications`);
+    });
+
+    // Handle tutor accepting a request
+    socket.on('tutor-accepted', (data) => {
+      const { studentId, sessionId, tutorName } = data;
+      io.to(`user-${studentId}`).emit('request-accepted', {
+        sessionId,
+        tutorName
+      });
+    });
+
     // Join session room
     socket.on('join-session', (data) => {
       const { sessionId, userId, userName, role } = data;
       socket.join(`session-${sessionId}`);
+      socket.join(`user-${userId}`); // Join personal room for notifications
       socket.data.sessionId = sessionId;
       socket.data.userId = userId;
       socket.data.userName = userName;
@@ -70,6 +87,7 @@ app.prepare().then(() => {
     // Handle whiteboard drawing
     socket.on('draw', (data) => {
       const { sessionId, drawData } = data;
+      console.log(`[WHITEBOARD] Draw sync from ${socket.id} for session ${sessionId}`);
       socket.broadcast.to(`session-${sessionId}`).emit('draw', drawData);
     });
 
@@ -87,6 +105,12 @@ app.prepare().then(() => {
         x,
         y,
       });
+    });
+
+    // Handle session end
+    socket.on('end-session', (data) => {
+      const { sessionId } = data;
+      io.to(`session-${sessionId}`).emit('session-ended');
     });
 
     // Handle disconnection

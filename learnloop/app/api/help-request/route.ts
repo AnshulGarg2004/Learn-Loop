@@ -1,6 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { ConnectDB } from "@/lib/connectDb";
+import connectDb from "@/lib/connectDb";
 import User from "@/models/user.model";
 import HelpRequest from "@/models/helpRequest.model";
 import Subject from "@/models/subject.model";
@@ -8,7 +8,7 @@ import Topic from "@/models/topic.model";
 
 export async function POST(req: NextRequest) {
     try {
-        await ConnectDB();
+        await connectDb();
 
         const { userId } = await auth();
         if (!userId) {
@@ -53,33 +53,41 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Verify subject exists (if provided)
+        // Verify or create subject
+        let subjectId = null;
         if (subject) {
-            const subjectDoc = await Subject.findById(subject);
-            if (!subjectDoc) {
-                return NextResponse.json(
-                    { error: "Invalid subject selected" },
-                    { status: 400 }
-                );
+            let subjectDoc = null;
+            if (subject.match(/^[0-9a-fA-F]{24}$/)) {
+                subjectDoc = await Subject.findById(subject);
+            } else {
+                subjectDoc = await Subject.findOne({ name: subject });
+                if (!subjectDoc) {
+                    subjectDoc = await Subject.create({ name: subject });
+                }
             }
+            subjectId = subjectDoc?._id;
         }
 
-        // Verify topic if provided
+        // Verify or create topic
+        let topicId = null;
         if (topic) {
-            const topicDoc = await Topic.findById(topic);
-            if (!topicDoc) {
-                return NextResponse.json(
-                    { error: "Invalid topic selected" },
-                    { status: 400 }
-                );
+            let topicDoc = null;
+            if (topic.match(/^[0-9a-fA-F]{24}$/)) {
+                topicDoc = await Topic.findById(topic);
+            } else {
+                topicDoc = await Topic.findOne({ name: topic, subject: subjectId });
+                if (!topicDoc) {
+                    topicDoc = await Topic.create({ name: topic, subject: subjectId });
+                }
             }
+            topicId = topicDoc?._id;
         }
 
         // Create help request
         const helpRequest = await HelpRequest.create({
             student: dbUser._id,
-            subject: subject || null,
-            topic: topic || null,
+            subject: subjectId,
+            topic: topicId,
             title,
             description,
             preferredLanguage: preferredLanguage || "English",

@@ -1,12 +1,12 @@
 
 import { NextResponse } from 'next/server';
 import Topics from '@/models/topic.model';
-import { ConnectDB } from '@/lib/connectDb';
+import connectDb from '@/lib/connectDb';
 import Subjects from '@/models/subject.model';
 
 export async function GET(req: Request) {
   try {
-    await ConnectDB();
+    await connectDb();
 
     // Check if subjects exist
     const existingSubjects = await Subjects.countDocuments();

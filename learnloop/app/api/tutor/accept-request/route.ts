@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
-import { ConnectDB } from '@/lib/connectDb';
+import connectDb from '@/lib/connectDb';
 import Users from '@/models/user.model';
 import HelpRequest from '@/models/helpRequest.model';
 import Sessions from '@/models/sesion.model';
@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       );
     }
 
-    await ConnectDB();
+    await connectDb();
 
     const { helpRequestId } = await req.json();
 
@@ -60,13 +60,13 @@ export async function POST(req: Request) {
       request: helpRequestId,
       status: 'scheduled',
       startTime: new Date(),
-      sessionType: 'tutoring',
+      sessionType: 'video',
     });
 
-    // Update help request status to "in-progress"
+    // Update help request status to "ongoing"
     await HelpRequest.findByIdAndUpdate(
       helpRequestId,
-      { status: 'in-progress' },
+      { status: 'ongoing' },
       { new: true }
     );
 

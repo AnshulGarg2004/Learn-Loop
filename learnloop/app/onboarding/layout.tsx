@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import User from "@/models/user.model";
-import { ConnectDB } from "@/lib/connectDb";
+import connectDb from "@/lib/connectDb";
 
 export default async function OnboardingLayout({
     children,
@@ -14,7 +14,7 @@ export default async function OnboardingLayout({
         redirect("/sign-in");
     }
 
-    await ConnectDB();
+    await connectDb();
     const user = await User.findOne({ clerkId: userId });
 
     // If user has already completed onboarding, redirect to dashboard

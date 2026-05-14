@@ -1,4 +1,4 @@
-import { ConnectDB } from '@/lib/connectDb';
+import connectDb from '@/lib/connectDb';
 import HelpRequest from '@/models/helpRequest.model';
 import Subject from '@/models/subject.model';
 import Topic from '@/models/topic.model';
@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
   try {
-    await ConnectDB();
+    await connectDb();
 
     // Get all open help requests
     const helpRequests = await HelpRequest.find({ status: 'open' })

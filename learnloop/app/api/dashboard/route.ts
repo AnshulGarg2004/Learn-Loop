@@ -1,12 +1,13 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { ConnectDB } from "@/lib/connectDb";
+
 import User from "@/models/user.model";
 import HelpRequest from "@/models/helpRequest.model";
 import Sessions from "@/models/sesion.model";
 import Subject from "@/models/subject.model";
 import Topic from "@/models/topic.model";
 import Badges from "@/models/badge.model";
+import connectDb from "@/lib/connectDb";
 
 function formatDate(value?: Date | string | null) {
   if (!value) return "";
@@ -30,7 +31,7 @@ function formatRelative(value?: Date | string | null) {
 
 export async function GET() {
   try {
-    await ConnectDB();
+    await connectDb();
 
     const { userId } = await auth();
     if (!userId) {
@@ -38,10 +39,10 @@ export async function GET() {
     }
 
     const clerkUser = await currentUser();
-    const name = `${clerkUser?.firstName ?? ""} ${clerkUser?.lastName ?? ""}`.trim() || 
-                 clerkUser?.username || 
-                 clerkUser?.emailAddresses?.[0]?.emailAddress || 
-                 "LearnLoop user";
+    const name = `${clerkUser?.firstName ?? ""} ${clerkUser?.lastName ?? ""}`.trim() ||
+      clerkUser?.username ||
+      clerkUser?.emailAddresses?.[0]?.emailAddress ||
+      "LearnLoop user";
     const email = clerkUser?.emailAddresses?.[0]?.emailAddress || "";
 
     const dbUser = await User.findOneAndUpdate(
@@ -71,6 +72,11 @@ export async function GET() {
       ? await HelpRequest.find({ _id: { $in: requestIds } }).lean()
       : [];
     const requestMap = new Map(requestDocs.map((request: any) => [String(request._id), request]));
+    const requestToSessionMap = new Map(
+      userSessions
+        .filter((s: any) => s.status === 'ongoing')
+        .map((s: any) => [String(s.request), String(s._id)])
+    );
 
     const expertise = (dbUser.expertise ?? []).map((entry: any) => ({
       subject: entry.subject ? subjectMap.get(String(entry.subject)) ?? "Unknown subject" : "Unknown subject",
@@ -91,6 +97,7 @@ export async function GET() {
       createdAt: formatDate(request.createdAt),
       replies: request.applications?.length ?? 0,
       creditsOffered: request.creditsOffered ?? 10,
+      sessionId: requestToSessionMap.get(String(request._id)),
     }));
 
     const answeredQuestions = answeredRequests.map((request: any) => ({
@@ -100,6 +107,7 @@ export async function GET() {
       status: request.status,
       credits: request.creditsOffered ?? 0,
       date: formatRelative(request.updatedAt ?? request.createdAt),
+      sessionId: requestToSessionMap.get(String(request._id)),
     }));
 
     const sessions = {

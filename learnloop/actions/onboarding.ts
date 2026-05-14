@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import User from "@/models/user.model";
-import { ConnectDB } from "@/lib/connectDb";
+import connectDb from "@/lib/connectDb";
 
 export async function completeOnboarding(formData: FormData) {
     const { userId } = await auth();
@@ -31,7 +31,7 @@ export async function completeOnboarding(formData: FormData) {
     const languages = languagesString.split(",").map((s) => s.trim()).filter(Boolean);
     const learningInterests = learningInterestsString.split(",").map((s) => s.trim()).filter(Boolean);
 
-    await ConnectDB();
+    await connectDb();
 
     const user = await User.findOneAndUpdate(
         { clerkId: userId },
