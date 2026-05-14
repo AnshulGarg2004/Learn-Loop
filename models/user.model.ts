@@ -3,8 +3,17 @@ import mongoose from "mongoose";
 export interface IUser {
     _id?: mongoose.Types.ObjectId | string;
     clerkId: string;
+    email: string;
+    name?: string;
+    imageUrl?: string;
     bio?: string;
-    role?: "student" | "tutor" | "admin";
+    role?: "student" | "tutor" | "both" | "admin";
+    college?: string;
+    skills?: string[];
+    subjects?: string[];
+    languages?: string[];
+    learningInterests?: string[];
+    onboardingCompleted?: boolean;
     institution?: {
         name?: string;
         email?: string;
@@ -41,14 +50,61 @@ const userSchema = new mongoose.Schema(
         unique : true
     },
 
+    email: {
+        type: String,
+        required: true,
+        unique: true
+    },
+
+    name: {
+        type: String
+    },
+
+    imageUrl: {
+        type: String
+    },
+
     bio: {
         type: String
     },
 
     role: {
         type: String,
-        enum: ["student", "tutor", "admin"],
+        enum: ["student", "tutor", "both", "admin"],
         default: "student"
+    },
+
+    college: {
+        type: String
+    },
+
+    skills: [
+        {
+            type: String
+        }
+    ],
+
+    subjects: [
+        {
+            type: String
+        }
+    ],
+
+    languages: [
+        {
+            type: String
+        }
+    ],
+
+    learningInterests: [
+        {
+            type: String
+        }
+    ],
+
+    onboardingCompleted: {
+        type: Boolean,
+        default: false
     },
 
     institution: {
