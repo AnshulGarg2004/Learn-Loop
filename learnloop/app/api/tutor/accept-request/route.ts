@@ -53,6 +53,27 @@ export async function POST(req: Request) {
       );
     }
 
+    // Get student
+    const student = await Users.findById(helpRequest.student);
+    if (!student) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+    }
+
+    const creditsToDeduct = helpRequest.creditsOffered || 10;
+
+    // Check if student has enough credits
+    if (student.knowledgeCredits < creditsToDeduct) {
+      return NextResponse.json(
+        { error: 'Student does not have enough credits' },
+        { status: 400 }
+      );
+    }
+
+    // Deduct credits from student
+    await Users.findByIdAndUpdate(student._id, {
+      $inc: { knowledgeCredits: -creditsToDeduct }
+    });
+
     // Create new session
     const session = await Sessions.create({
       tutor: tutor._id,

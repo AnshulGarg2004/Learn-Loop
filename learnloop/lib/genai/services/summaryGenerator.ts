@@ -14,7 +14,15 @@ export interface SessionSummary {
 export async function generateSummary(transcript: string): Promise<SessionSummary> {
   try {
     if (!transcript || transcript.trim().length === 0) {
-      throw new Error('Transcript cannot be empty');
+      return {
+        conciseSummary: "No chat history was recorded for this session. This often happens in video-only sessions.",
+        bulletNotes: ["No chat messages found"],
+        importantConcepts: [],
+        formulas: [],
+        revisionTips: ["Try using the chat feature next time to get AI-generated insights!"],
+        homeworkSuggestions: [],
+        keyTakeaway: "Direct video/audio interaction only."
+      };
     }
 
     const model = initializeGroqModel();
@@ -46,17 +54,26 @@ export async function generateSummary(transcript: string): Promise<SessionSummar
       throw new Error('Could not parse summary response as JSON');
     }
 
-    const result = JSON.parse(jsonMatch[0]);
+    let jsonString = jsonMatch[0];
+    
+    // Clean up common JSON errors from LLMs (unescaped newlines in strings)
+    jsonString = jsonString.replace(/\n/g, ' '); 
 
-    return {
-      conciseSummary: result.conciseSummary || '',
-      bulletNotes: result.bulletNotes || [],
-      importantConcepts: result.importantConcepts || [],
-      formulas: result.formulas || [],
-      revisionTips: result.revisionTips || [],
-      homeworkSuggestions: result.homeworkSuggestions || [],
-      keyTakeaway: result.keyTakeaway || '',
-    };
+    try {
+      const result = JSON.parse(jsonString);
+      return {
+        conciseSummary: result.conciseSummary || '',
+        bulletNotes: result.bulletNotes || [],
+        importantConcepts: result.importantConcepts || [],
+        formulas: result.formulas || [],
+        revisionTips: result.revisionTips || [],
+        homeworkSuggestions: result.homeworkSuggestions || [],
+        keyTakeaway: result.keyTakeaway || '',
+      };
+    } catch (parseError) {
+      console.error('JSON Parse Error. Content was:', jsonString);
+      throw new Error(`Failed to parse AI response: ${(parseError as any).message}`);
+    }
   } catch (error) {
     console.error('Summary generation error:', error);
     throw new Error(`Summary generation failed: ${(error as any).message}`);

@@ -50,6 +50,8 @@ export default function SessionPage() {
   const [summary, setSummary] = useState<any>(null);
   const [quiz, setQuiz] = useState<any>(null);
   const [completingSession, setCompletingSession] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [feedback, setFeedback] = useState('');
 
   // Scroll chat to bottom on new messages
   useEffect(() => {
@@ -176,20 +178,29 @@ export default function SessionPage() {
 
   const handleEndSession = async () => {
     if (!confirm('Are you sure you want to end this session?')) return;
+    
+    // Notify other participants via socket
+    endSession(sessionId);
+    
+    // Run completion flow locally
+    await triggerCompletionFlow();
+  };
 
-    try {
-      // 1. Mark session as completed in DB
-      await fetch(`/api/session/${sessionId}/complete`, { method: 'POST' });
-      
-      // 2. Notify other participants via socket
-      endSession(sessionId);
-      
-      // 3. Run completion flow locally
-      await triggerCompletionFlow();
-    } catch (error) {
-      console.error('Failed to end session:', error);
-      alert('Failed to end session properly. Please try again.');
+  const finalizeSession = async () => {
+    const isTutor = sessionData?.tutor?.clerkId === user?.id;
+    if (!isTutor) {
+      setCompletingSession(true);
+      try {
+        await fetch(`/api/session/${sessionId}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rating, feedback })
+        });
+      } catch (error) {
+        console.error('Failed to submit feedback:', error);
+      }
     }
+    router.push('/dashboard');
   };
 
   // Listen for session ended from others
@@ -509,6 +520,35 @@ export default function SessionPage() {
                   </div>
                 </section>
 
+                {/* Rating Section (Student only) */}
+                {sessionData?.tutor?.clerkId !== user?.id && (
+                  <section className="space-y-6">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center text-xl">⭐</div>
+                       <h3 className="text-xl font-black text-slate-900 tracking-tight">Rate your Tutor</h3>
+                    </div>
+                    <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200 space-y-6">
+                      <div className="flex justify-center gap-4">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => setRating(star)}
+                            className={`text-4xl transition-all transform hover:scale-110 ${star <= rating ? 'grayscale-0' : 'grayscale opacity-30'}`}
+                          >
+                            {star <= rating ? '⭐' : '☆'}
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        placeholder="Any extra feedback for the tutor?"
+                        className="w-full bg-white border border-slate-200 rounded-2xl p-5 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all font-medium min-h-[100px]"
+                      />
+                    </div>
+                  </section>
+                )}
+
                 {/* Actions */}
                 <section className="space-y-6">
                   <div className="flex items-center gap-3">
@@ -536,10 +576,11 @@ export default function SessionPage() {
 
               <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-center">
                 <button
-                  onClick={() => router.push('/dashboard')}
-                  className="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black transition-all active:scale-95 shadow-lg"
+                  onClick={finalizeSession}
+                  disabled={completingSession}
+                  className="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black transition-all active:scale-95 shadow-lg disabled:opacity-50"
                 >
-                  Close & Finish
+                  {completingSession ? 'Saving...' : 'Save & Finish'}
                 </button>
               </div>
             </motion.div>

@@ -8,7 +8,7 @@ export const initializeGroqModel = () => {
 
   return new ChatGroq({
     apiKey: process.env.GROQ_API_KEY,
-    modelName: 'llama-3.3-70b-versatile',
+    modelName: 'llama-3.1-8b-instant',
     temperature: 0.3,
     maxTokens: 2048,
   });
@@ -22,7 +22,7 @@ export const initializeCreativeGroqModel = () => {
 
   return new ChatGroq({
     apiKey: process.env.GROQ_API_KEY,
-    modelName: 'llama-3.3-70b-versatile',
+    modelName: 'llama-3.1-8b-instant',
     temperature: 0.7,
     maxTokens: 2048,
   });
@@ -36,7 +36,7 @@ export const initializeDeterministicGroqModel = () => {
 
   return new ChatGroq({
     apiKey: process.env.GROQ_API_KEY,
-    modelName: 'llama-3.3-70b-versatile',
+    modelName: 'llama-3.1-8b-instant',
     temperature: 0.1,
     maxTokens: 2048,
   });
@@ -50,7 +50,7 @@ export const initializeStreamingGroqModel = () => {
 
   return new ChatGroq({
     apiKey: process.env.GROQ_API_KEY,
-    modelName: 'llama-3.3-70b-versatile',
+    modelName: 'llama-3.1-8b-instant',
     temperature: 0.3,
     maxTokens: 1024,
     streaming: true,

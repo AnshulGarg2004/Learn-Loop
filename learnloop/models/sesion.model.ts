@@ -84,7 +84,12 @@ const sessionSchema = new mongoose.Schema(
             }
         ],
 
-        sessionSummary: String
+        sessionSummary: String,
+        rating: {
+          type: Number,
+          min: 1,
+          max: 5
+        }
     },
     {
         timestamps: true

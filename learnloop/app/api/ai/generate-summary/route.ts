@@ -6,9 +6,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { transcript } = body;
 
-    if (!transcript || typeof transcript !== 'string') {
+    if (typeof transcript !== 'string') {
       return NextResponse.json(
-        { error: 'transcript is required and must be a string' },
+        { error: 'transcript must be a string' },
         { status: 400 }
       );
     }

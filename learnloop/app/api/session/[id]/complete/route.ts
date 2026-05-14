@@ -1,9 +1,8 @@
+import { auth } from '@clerk/nextjs/server';
 import connectDb from '@/lib/connectDb';
-import Sessions from '@/models/sesion.model';
+import Users from '@/models/user.model';
 import HelpRequest from '@/models/helpRequest.model';
-import User from '@/models/user.model';
-import CreditTransactions from '@/models/credit.model';
-import Badges from '@/models/badge.model';
+import Sessions from '@/models/sesion.model';
 import { NextResponse } from 'next/server';
 
 export async function POST(
@@ -11,73 +10,72 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { userId } = await auth();
+    const { id: sessionId } = await params;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { rating, feedback } = await req.json();
+
     await connectDb();
 
-    const { id } = await params;
-    
-    // 1. Find the session and populate tutor/student
-    const session = await Sessions.findById(id).populate('request');
+    // Get session
+    const session = await Sessions.findById(sessionId);
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
     if (session.status === 'completed') {
-      return NextResponse.json({ message: 'Session already completed' });
+      return NextResponse.json({ error: 'Session already completed' }, { status: 400 });
     }
 
-    // 2. Get credits offered from help request
-    const creditsToTransfer = session.request?.creditsOffered || 10;
+    // Get help request to find bounty amount
+    const helpRequest = await HelpRequest.findById(session.request);
+    const bounty = helpRequest?.creditsOffered || 10;
 
-    // 3. Update session status
+    // 1. Mark session as completed
     session.status = 'completed';
     session.endTime = new Date();
+    session.sessionSummary = feedback;
+    session.rating = rating;
     await session.save();
 
-    // 4. Also update the associated help request if it exists
-    if (session.request) {
-      await HelpRequest.findByIdAndUpdate(session.request._id, { status: 'completed' });
+    // 2. Mark help request as completed
+    if (helpRequest) {
+      helpRequest.status = 'completed';
+      await helpRequest.save();
     }
 
-    // 5. Transfer Credits
-    // Deduct from student
-    await User.findByIdAndUpdate(session.student, {
-      $inc: { knowledgeCredits: -creditsToTransfer }
-    });
-
-    // Add to tutor, increase reputation, and check for badges
-    const tutor = await User.findById(session.tutor);
+    // 3. Reward tutor
+    const tutorId = session.tutor;
+    console.log(`[REWARD] Attempting to reward tutor: ${tutorId} with bounty: ${bounty}`);
+    
+    const tutor = await Users.findById(tutorId);
     if (tutor) {
-      tutor.knowledgeCredits += creditsToTransfer;
-      tutor.reputationPoints += 5;
+      // Reputation points: rating * 2
+      const reputationGain = (Number(rating) || 5) * 2;
       
-      // Award "First Session" badge if not already earned
-      const firstSessionBadge = await Badges.findOne({ name: 'First Session' });
-      if (firstSessionBadge && !tutor.badges.includes(firstSessionBadge._id)) {
-        tutor.badges.push(firstSessionBadge._id);
-      }
+      const updateResult = await Users.findByIdAndUpdate(tutor._id, {
+        $inc: { 
+          knowledgeCredits: Number(bounty),
+          reputationPoints: reputationGain
+        }
+      }, { new: true });
       
-      await tutor.save();
+      console.log(`[REWARD] Successfully updated tutor. New balance: ${updateResult?.knowledgeCredits}, New Rep: ${updateResult?.reputationPoints}`);
+    } else {
+      console.error(`[REWARD] Tutor not found in database: ${tutorId}`);
     }
-
-    // 6. Record Transaction
-    await CreditTransactions.create({
-      sender: session.student,
-      receiver: session.tutor,
-      session: session._id,
-      amount: creditsToTransfer,
-      transactionType: 'session_payment'
-    });
 
     return NextResponse.json({
       success: true,
-      message: 'Session completed and credits transferred',
-      session
+      message: 'Session completed and rewards distributed'
     });
-  } catch (error: any) {
+
+  } catch (error) {
     console.error('Error completing session:', error);
-    return NextResponse.json(
-      { error: 'Failed to complete session: ' + error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to complete session' }, { status: 500 });
   }
 }
