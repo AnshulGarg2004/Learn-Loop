@@ -1,15 +1,12 @@
 import User from "@/models/user.model"
-import { auth } from "@clerk/nextjs/server";
-
-import { NextResponse } from "next/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { ConnectDB } from "./connectDb";
 
 export const syncUser = async () => {
-
     const { userId: clerkId } = await auth();
     if (!clerkId) {
         console.log("User id didn't come from clerk");
-        return;
+        return null;
     }
 
     try {
@@ -18,19 +15,33 @@ export const syncUser = async () => {
         const existingUser = await User.findOne({ clerkId });
 
         if (existingUser) {
-            console.log("User already exists", existingUser);
-            return NextResponse.json({ success: true, message: "User already exist", existingUser : existingUser }, { status: 200 });
+            console.log("User already exists");
+            return existingUser;
         }
 
-        const user = await User.create({ clerkId });
+        const clerkUser = await currentUser();
+        if (!clerkUser) {
+            return null;
+        }
+
+        const email = clerkUser.emailAddresses[0]?.emailAddress || "";
+        const name = `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim();
+        const imageUrl = clerkUser.imageUrl || "";
+
+        const user = await User.create({
+            clerkId,
+            email,
+            name,
+            imageUrl,
+            onboardingCompleted: false
+        });
 
         console.log("User created successfully: ", user);
 
-        return NextResponse.json({ success: true, message: "User created", user }, { status: 201 });
+        return user;
 
     } catch (error: any) {
         console.error("Error occurred while syncing user:", error.message);
-        return NextResponse.json({ success: false, message: "Error occurred while syncing user" }, { status: 500 });
+        return null;
     }
-
 }
