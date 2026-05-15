@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useAuth, useUser, UserButton } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useSocket } from '@/lib/useSocket';
+import Link from 'next/link';
 
 type QuestionStatus = 'open' | 'matched' | 'ongoing' | 'completed';
 type UrgencyLevel = 'low' | 'medium' | 'high';
@@ -145,6 +146,12 @@ export default function DashboardPage() {
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedTopicName, setSelectedTopicName] = useState('');
   const [isUpdatingExpertise, setIsUpdatingExpertise] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setSidebarOpen(window.innerWidth >= 1024);
+    }
+  }, []);
 
   useEffect(() => {
     if (showExpertiseModal) {
@@ -410,29 +417,33 @@ export default function DashboardPage() {
   ];
 
   return (
-
-    <div className="min-h-screen bg-slate-50 flex text-slate-900 font-sans">
+    <div className="min-h-screen bg-purple-50/50 flex text-gray-900 font-sans">
       {/* Sidebar */}
-      <motion.aside
-        initial={{ x: -280 }}
-        animate={{ x: sidebarOpen ? 0 : -280 }}
-        className={`fixed lg:relative top-0 left-0 h-screen w-72 bg-white border-r border-slate-200 shadow-sm z-50 transition-all duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          }`}
+      <aside
+        className={`fixed lg:relative top-0 left-0 h-screen w-64 bg-white shadow-2xl lg:shadow-none border-r border-purple-100 z-50 transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        <div className="p-8 flex flex-col h-full">
-          <div className="mb-10">
-            <h1 className="text-2xl font-black tracking-tight text-indigo-600">
-              LEARN<span className="text-slate-900">LOOP</span>
-            </h1>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mt-1">Peer Learning Ecosystem</p>
+        <div className="p-6 flex flex-col h-full">
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <Link href="/" className="text-xl font-semibold tracking-tight text-gray-900 hover:text-purple-600 transition-colors inline-block">
+                LEARNLOOP
+              </Link>
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500 mt-1">Enterprise Learning</p>
+            </div>
+            <button 
+              onClick={() => setSidebarOpen(false)} 
+              className="lg:hidden p-2 text-gray-500 hover:bg-purple-100 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
 
-          <nav className="flex-1 space-y-1.5 overflow-y-auto pr-2 custom-scrollbar">
+          <nav className="flex-1 space-y-1 overflow-y-auto pr-2 custom-scrollbar">
             {sidebarOptions.map((option) => (
-              <motion.button
+              <button
                 key={option.id}
-                whileHover={{ x: 4 }}
-                whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   if (option.id === 'leaderboard') {
                     router.push('/leaderboard');
@@ -441,72 +452,64 @@ export default function DashboardPage() {
                     if (window.innerWidth < 1024) setSidebarOpen(false);
                   }
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${activeTab === option.id
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-sm transition-colors duration-150 ${activeTab === option.id
+                  ? 'bg-white text-gray-900 border border-purple-100 shadow-lg shadow-purple-500/10'
+                  : 'text-gray-500 hover:bg-purple-100 hover:text-gray-900 border border-transparent'
                   }`}
               >
-                <span className="text-xl opacity-90">{option.icon}</span>
-                <span className="text-sm">{option.label}</span>
-              </motion.button>
+                <span className="text-lg opacity-80">{option.icon}</span>
+                <span>{option.label}</span>
+              </button>
             ))}
           </nav>
 
-          <div className="pt-6 mt-6 border-t border-slate-100">
-            <button className="w-full px-4 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2">
-              <span>🚪</span> Logout
-            </button>
+          <div className="pt-4 mt-4 border-t border-purple-100">
+            {/* User settings or help could go here */}
           </div>
         </div>
-      </motion.aside>
+      </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-white w-full">
         {/* Header */}
-        <motion.header
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 z-40 sticky top-0"
-        >
-          <div className="flex items-center gap-6 min-w-0">
+        <header className="h-16 bg-white border-b border-purple-100 flex items-center justify-between px-6 z-40 sticky top-0">
+          <div className="flex items-center gap-4 min-w-0">
             <button
               onClick={() => setSidebarOpen((v) => !v)}
-              className="lg:hidden p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-white transition-all"
+              className="lg:hidden p-2 bg-purple-50/50 border border-purple-100 rounded-xl hover:bg-purple-100 transition-colors"
             >
-              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
+              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
             <div className="min-w-0">
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">{currentTitle}</h2>
+              <h2 className="text-lg font-semibold text-gray-900 tracking-tight">{currentTitle}</h2>
               <div className="flex items-center gap-2 mt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Live Ecosystem</p>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Live Connection</p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-2xl">
-              <span className="text-lg">💎</span>
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-purple-50/50 border border-purple-100 rounded-xl">
+              <span className="text-sm">💎</span>
               <div className="leading-tight">
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">Credits</p>
-                <p className="text-sm font-black text-indigo-700">{profile.knowledgeCredits}</p>
+                <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Credits</p>
+                <p className="text-xs font-semibold text-gray-900">{profile.knowledgeCredits}</p>
               </div>
             </div>
 
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-100 ring-4 ring-white">
-              {initials}
-            </div>
+            <UserButton />
 
             <button
               onClick={() => router.push('/ask-for-help')}
-              className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-2xl font-bold text-sm hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-100 transition-all active:scale-95"
+              className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium text-sm hover:from-purple-700 hover:to-indigo-700 transition-colors shadow-lg shadow-purple-500/20"
             >
               <span>+</span> Ask Help
             </button>
           </div>
-        </motion.header>
+        </header>
 
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto">
@@ -515,20 +518,19 @@ export default function DashboardPage() {
               {activeTab === 'overview' && (
                 <div className="space-y-8">
                   {/* Stats Grid */}
-                  <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {statsCards.map((stat) => (
                       <motion.div
                         key={stat.label}
                         variants={itemVariants}
-                        whileHover={{ y: -4 }}
-                        className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm transition-all"
+                        className="bg-white p-5 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10 transition-colors hover:bg-purple-50/50"
                       >
                         <div className="flex justify-between items-start">
                           <div>
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">{stat.label}</p>
-                            <p className="text-3xl font-black text-slate-900">{stat.value}</p>
+                            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1.5">{stat.label}</p>
+                            <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
                           </div>
-                          <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-xl">
+                          <div className="w-8 h-8 bg-purple-50/50 border border-zinc-100 rounded-xl flex items-center justify-center text-base shadow-md shadow-purple-500/5">
                             {stat.icon}
                           </div>
                         </div>
@@ -536,37 +538,37 @@ export default function DashboardPage() {
                     ))}
                   </motion.div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Recent Questions */}
-                    <div className="lg:col-span-2 space-y-6">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-slate-900 tracking-tight">Recent Activity</h3>
-                        <button className="text-xs font-bold text-indigo-600 hover:text-indigo-700">View All</button>
+                    <div className="lg:col-span-2 space-y-4">
+                      <div className="flex items-center justify-between pb-2 border-b border-purple-100">
+                        <h3 className="text-sm font-semibold text-gray-900 tracking-tight">Recent Activity</h3>
+                        <button className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors">View All</button>
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {postedQuestions.length > 0 ? (
                           postedQuestions.slice(0, 4).map((question) => (
                             <motion.div
                               key={question._id}
                               variants={itemVariants}
                               onClick={() => question.sessionId && router.push(`/session/${question.sessionId}`)}
-                              className={`group bg-white p-5 rounded-2xl border border-slate-200 hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-50/50 transition-all ${question.sessionId ? 'cursor-pointer' : 'cursor-default'}`}
+                              className={`group bg-white p-4 rounded-xl border border-purple-100 hover:border-purple-200 hover:bg-purple-50/50 transition-colors ${question.sessionId ? 'cursor-pointer' : 'cursor-default'}`}
                             >
                               <div className="flex justify-between items-start gap-4">
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">{question.title}</p>
-                                  <div className="flex items-center gap-3 mt-1.5">
-                                    <span className="text-[11px] font-bold text-slate-400 uppercase">{question.subject}</span>
-                                    <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                    <span className="text-[11px] font-bold text-slate-400 uppercase">{question.createdAt}</span>
+                                  <p className="font-semibold text-sm text-gray-900 truncate">{question.title}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[10px] font-medium text-gray-500 uppercase">{question.subject}</span>
+                                    <span className="w-1 h-1 rounded-full bg-zinc-300" />
+                                    <span className="text-[10px] font-medium text-gray-500 uppercase">{question.createdAt}</span>
                                   </div>
                                 </div>
-                                <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${question.status === 'open'
-                                  ? 'bg-indigo-50 text-indigo-600'
+                                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-lg border ${question.status === 'open'
+                                  ? 'bg-purple-50/50 text-gray-700 border-purple-100'
                                   : question.status === 'matched'
-                                    ? 'bg-amber-50 text-amber-600'
-                                    : 'bg-emerald-50 text-emerald-600'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : 'bg-green-50 text-green-700 border-green-200'
                                   }`}>
                                   {question.status}
                                 </span>
@@ -574,45 +576,45 @@ export default function DashboardPage() {
                             </motion.div>
                           ))
                         ) : (
-                          <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                            <p className="text-slate-400 font-medium">No activity yet. Start by asking a question!</p>
+                          <div className="bg-purple-50/50 rounded-xl border border-dashed border-purple-200 p-8 text-center">
+                            <p className="text-sm text-gray-500 font-medium">No activity yet. Start by asking a question.</p>
                           </div>
                         )}
                       </div>
                     </div>
 
                     {/* Sidebar Stats */}
-                    <div className="space-y-8">
-                      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <h3 className="text-sm font-bold text-slate-900 mb-6 uppercase tracking-wider">Ecosystem Status</h3>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-bold text-slate-400 uppercase">Teaching Streak</span>
-                            <span className="text-sm font-black text-amber-500">🔥 {profile.teachingStreak} Days</span>
+                    <div className="space-y-6">
+                      <div className="bg-white p-5 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10">
+                        <h3 className="text-xs font-semibold text-gray-900 mb-4 uppercase tracking-wider">Ecosystem Status</h3>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center pb-2 border-b border-zinc-100">
+                            <span className="text-xs font-medium text-gray-500 uppercase">Teaching Streak</span>
+                            <span className="text-xs font-semibold text-gray-900">{profile.teachingStreak} Days</span>
+                          </div>
+                          <div className="flex justify-between items-center pb-2 border-b border-zinc-100">
+                            <span className="text-xs font-medium text-gray-500 uppercase">Expertise Level</span>
+                            <span className="text-xs font-semibold text-gray-900">Expert</span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-xs font-bold text-slate-400 uppercase">Expertise Level</span>
-                            <span className="text-sm font-black text-indigo-600">Expert</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-bold text-slate-400 uppercase">Global Rank</span>
-                            <span className="text-sm font-black text-slate-900">#42</span>
+                            <span className="text-xs font-medium text-gray-500 uppercase">Global Rank</span>
+                            <span className="text-xs font-semibold text-gray-900">#42</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="bg-indigo-600 p-6 rounded-2xl shadow-xl shadow-indigo-100 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 text-4xl opacity-20 group-hover:scale-110 transition-transform">🏆</div>
-                        <h3 className="text-sm font-bold text-indigo-100 mb-4 uppercase tracking-wider">Top Badges</h3>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-5 rounded-xl shadow-lg shadow-purple-500/10 border border-indigo-500/30 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-3 text-4xl opacity-10">🏆</div>
+                        <h3 className="text-xs font-semibold text-gray-400 mb-4 uppercase tracking-wider relative z-10">Top Badges</h3>
+                        <div className="flex flex-wrap gap-2 relative z-10">
                           {badges.filter(b => b.earned).slice(0, 4).length > 0 ? (
                             badges.filter(b => b.earned).slice(0, 4).map(badge => (
-                              <div key={badge._id} className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-xl hover:bg-white/20 transition-colors" title={badge.name}>
+                              <div key={badge._id} className="w-8 h-8 bg-white/10 border border-white/20 rounded-xl flex items-center justify-center text-sm hover:bg-white/20 transition-colors" title={badge.name}>
                                 {badge.icon}
                               </div>
                             ))
                           ) : (
-                            <p className="text-[11px] font-bold text-indigo-200">Start teaching to earn badges!</p>
+                            <p className="text-[10px] font-medium text-gray-500">Start teaching to earn badges</p>
                           )}
                         </div>
                       </div>
@@ -622,27 +624,28 @@ export default function DashboardPage() {
               )}
 
               {activeTab === 'find-tutoring' && (
-                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
+                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
                   {profile.expertise && profile.expertise.length > 0 && (
                     <motion.div
                       initial={{ scale: 0.98, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="p-8 bg-indigo-600 rounded-3xl text-white shadow-xl shadow-indigo-100 relative overflow-hidden group"
+                      transition={{ duration: 0.2 }}
+                      className="p-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg text-white border border-indigo-500/30 relative overflow-hidden"
                     >
-                      <div className="absolute top-0 right-0 p-8 text-8xl opacity-10 group-hover:scale-110 transition-transform rotate-12">✨</div>
-                      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="absolute top-0 right-0 p-6 text-6xl opacity-5 rotate-12">✨</div>
+                      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="max-w-2xl">
-                          <div className="flex items-center gap-3 mb-3">
-                            <span className="text-2xl">🤖</span>
-                            <h3 className="text-xl font-bold tracking-tight">AI Smart Matching Active</h3>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xl">🤖</span>
+                            <h3 className="text-base font-semibold tracking-tight">AI Smart Matching Active</h3>
                           </div>
-                          <p className="text-indigo-100 leading-relaxed font-medium">
-                            We've highlighted tutoring requests that match your expertise in <span className="text-white font-black">{profile.expertise.map(e => e.subject).join(', ')}</span>.
+                          <p className="text-sm text-gray-400 font-medium">
+                            We've highlighted tutoring requests that match your expertise in <span className="text-white">{profile.expertise.map(e => e.subject).join(', ')}</span>.
                           </p>
                         </div>
                         <button
                           onClick={() => setShowExpertiseModal(true)}
-                          className="px-6 py-3 bg-white text-indigo-600 rounded-2xl font-black text-sm shadow-lg shadow-indigo-900/20 hover:bg-indigo-50 transition-all whitespace-nowrap"
+                          className="px-4 py-2 bg-white text-gray-900 rounded-xl font-medium text-sm hover:bg-purple-100 transition-colors whitespace-nowrap"
                         >
                           Refine Profile
                         </button>
@@ -650,12 +653,12 @@ export default function DashboardPage() {
                     </motion.div>
                   )}
 
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-slate-900 tracking-tight">Open Bounties</h3>
+                      <h3 className="text-base font-semibold text-gray-900 tracking-tight">Open Bounties</h3>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-400 uppercase">Sort by:</span>
-                        <select className="bg-transparent text-xs font-black text-slate-900 border-none focus:ring-0 cursor-pointer">
+                        <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Sort by:</span>
+                        <select className="bg-transparent text-xs font-semibold text-gray-900 border-none focus:ring-0 cursor-pointer">
                           <option>Newest</option>
                           <option>High Credits</option>
                           <option>Urgent</option>
@@ -663,22 +666,21 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                       {availableQuestions.length > 0 ? (
                         availableQuestions.map((question) => (
                           <motion.div
                             key={question._id}
                             variants={itemVariants}
-                            whileHover={{ y: -6 }}
-                            className="group bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all flex flex-col"
+                            className="group bg-white p-5 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10 hover:border-purple-200 transition-all flex flex-col"
                           >
                             <div className="flex justify-between items-start mb-4">
                               <div className="flex flex-col gap-2">
-                                <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${question.urgencyLevel === 'high'
-                                  ? 'bg-rose-50 text-rose-600'
+                                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-lg border ${question.urgencyLevel === 'high'
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
                                   : question.urgencyLevel === 'medium'
-                                    ? 'bg-amber-50 text-amber-600'
-                                    : 'bg-emerald-50 text-emerald-600'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : 'bg-green-50 text-green-700 border-green-200'
                                   }`}>
                                   {question.urgencyLevel} Priority
                                 </span>
@@ -686,53 +688,53 @@ export default function DashboardPage() {
                                   <motion.div
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    className="flex items-center gap-1.5 px-2.5 py-1 bg-linear-to-r from-indigo-500 to-violet-600 text-white rounded-lg shadow-sm"
+                                    className="flex items-center gap-1.5 px-2 py-0.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg shadow-lg shadow-purple-500/10"
                                   >
-                                    <span className="text-[9px] font-black uppercase tracking-wider">✨ {question.matchScore}% Match</span>
+                                    <span className="text-[9px] font-semibold uppercase tracking-wider">✨ {question.matchScore}% Match</span>
                                   </motion.div>
                                 )}
                               </div>
-                              <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-xl">
-                                <span className="text-sm">💎</span>
-                                <span className="text-sm font-black text-indigo-700">{question.creditsOffered}</span>
+                              <div className="flex items-center gap-1.5 bg-purple-50/50 border border-purple-100 px-2 py-1 rounded-xl">
+                                <span className="text-xs">💎</span>
+                                <span className="text-xs font-semibold text-gray-900">{question.creditsOffered}</span>
                               </div>
                             </div>
 
                             <div className="flex-1">
-                              <h4 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight mb-2">
+                              <h4 className="text-sm font-semibold text-gray-900 group-hover:text-gray-600 transition-colors leading-tight mb-2">
                                 {question.title}
                               </h4>
                               {question.matchReason && (
-                                <p className="text-[11px] font-medium text-slate-500 bg-slate-50 p-3 rounded-2xl mb-4 border border-slate-100 italic">
+                                <p className="text-[10px] font-medium text-gray-500 bg-purple-50/50 p-2.5 rounded-xl mb-3 border border-purple-100 italic">
                                   " {question.matchReason} "
                                 </p>
                               )}
-                              <p className="text-sm text-slate-500 line-clamp-3 mb-4 leading-relaxed">
+                              <p className="text-xs text-gray-500 line-clamp-3 mb-4 leading-relaxed">
                                 {question.description}
                               </p>
                             </div>
 
-                            <div className="space-y-4 pt-4 border-t border-slate-100">
+                            <div className="space-y-4 pt-4 border-t border-zinc-100">
                               <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2.5">
-                                  <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-xl bg-purple-100 border border-purple-100 flex items-center justify-center text-xs font-semibold text-gray-600">
                                     {question.student.name?.[0] || 'S'}
                                   </div>
                                   <div>
-                                    <p className="text-[11px] font-black text-slate-900 truncate max-w-[100px]">{question.student.name}</p>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">{question.subject}</p>
+                                    <p className="text-xs font-semibold text-gray-900 truncate max-w-[100px]">{question.student.name}</p>
+                                    <p className="text-[9px] font-medium text-gray-500 uppercase tracking-wider">{question.subject}</p>
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase">Applicants</p>
-                                  <p className="text-[11px] font-black text-slate-900">{question.applicationsCount || 0}</p>
+                                  <p className="text-[9px] font-medium text-gray-500 uppercase tracking-wider">Applicants</p>
+                                  <p className="text-xs font-semibold text-gray-900">{question.applicationsCount || 0}</p>
                                 </div>
                               </div>
 
                               <button
                                 onClick={() => handleAcceptQuestion(question._id)}
                                 disabled={acceptingQuestion === question._id}
-                                className="w-full py-3.5 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-100 transition-all disabled:opacity-50 active:scale-[0.98]"
+                                className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium text-sm hover:from-purple-700 hover:to-indigo-700 transition-colors shadow-lg shadow-purple-500/20 disabled:opacity-50"
                               >
                                 {acceptingQuestion === question._id ? 'Joining Session...' : 'Accept Bounty'}
                               </button>
@@ -740,9 +742,9 @@ export default function DashboardPage() {
                           </motion.div>
                         ))
                       ) : (
-                        <div className="col-span-full bg-white rounded-3xl border-2 border-dashed border-slate-200 p-16 text-center">
-                          <span className="text-4xl mb-4 block">🔍</span>
-                          <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">No Open Bounties Found</p>
+                        <div className="col-span-full bg-purple-50/50 rounded-xl border border-dashed border-purple-200 p-12 text-center">
+                          <span className="text-2xl mb-2 block">🔍</span>
+                          <p className="text-gray-500 font-medium text-sm">No Open Bounties Found</p>
                         </div>
                       )}
                     </div>
@@ -751,33 +753,33 @@ export default function DashboardPage() {
               )}
 
               {activeTab === 'posted-questions' && (
-                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-slate-900 tracking-tight">Your Posted Questions</h3>
-                    <button onClick={() => router.push('/ask-for-help')} className="text-sm font-bold text-indigo-600">+ New Request</button>
+                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-purple-100">
+                    <h3 className="text-sm font-semibold text-gray-900 tracking-tight">Your Posted Questions</h3>
+                    <button onClick={() => router.push('/ask-for-help')} className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors">+ New Request</button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {postedQuestions.length > 0 ? (
                       postedQuestions.map((question) => (
-                        <motion.div key={question._id} variants={itemVariants} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                          <div className="flex justify-between items-start mb-4">
-                            <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${question.status === 'open' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
+                        <motion.div key={question._id} variants={itemVariants} className="bg-white p-5 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10 hover:border-purple-200 hover:bg-purple-50/50 transition-colors">
+                          <div className="flex justify-between items-start mb-3">
+                            <span className={`text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-lg border ${question.status === 'open' ? 'bg-purple-50/50 text-gray-700 border-purple-100' : 'bg-green-50 text-green-700 border-green-200'
                               }`}>
                               {question.status}
                             </span>
-                            <span className="text-sm font-black text-slate-900">💎 {question.creditsOffered}</span>
+                            <span className="text-xs font-semibold text-gray-900">💎 {question.creditsOffered}</span>
                           </div>
-                          <h4 className="font-bold text-slate-900 mb-2">{question.title}</h4>
-                          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-100">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase">{question.subject}</span>
-                            <span className="w-1 h-1 rounded-full bg-slate-200" />
-                            <span className="text-[11px] font-bold text-slate-400 uppercase">💬 {question.replies} Replies</span>
+                          <h4 className="font-semibold text-sm text-gray-900 mb-2">{question.title}</h4>
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-zinc-100">
+                            <span className="text-[10px] font-medium text-gray-500 uppercase">{question.subject}</span>
+                            <span className="w-1 h-1 rounded-full bg-zinc-300" />
+                            <span className="text-[10px] font-medium text-gray-500 uppercase">💬 {question.replies} Replies</span>
                           </div>
                         </motion.div>
                       ))
                     ) : (
-                      <div className="col-span-full bg-white rounded-3xl border-2 border-dashed border-slate-200 p-16 text-center">
-                        <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">No Questions Posted</p>
+                      <div className="col-span-full bg-purple-50/50 rounded-xl border border-dashed border-purple-200 p-12 text-center">
+                        <p className="text-gray-500 font-medium text-sm">No Questions Posted</p>
                       </div>
                     )}
                   </div>
@@ -785,24 +787,24 @@ export default function DashboardPage() {
               )}
 
               {activeTab === 'answered-questions' && (
-                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
-                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">Teaching History</h3>
-                  <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-900 tracking-tight pb-2 border-b border-purple-100">Teaching History</h3>
+                  <div className="bg-white rounded-xl border border-purple-100 overflow-hidden shadow-lg shadow-purple-500/10">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200">
-                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Question</th>
-                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Subject</th>
-                          <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Credits Earned</th>
+                        <tr className="bg-purple-50/50 border-b border-purple-100">
+                          <th className="px-5 py-3 text-[10px] font-medium text-gray-500 uppercase tracking-wider">Question</th>
+                          <th className="px-5 py-3 text-[10px] font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                          <th className="px-5 py-3 text-[10px] font-medium text-gray-500 uppercase tracking-wider text-right">Credits Earned</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-zinc-200">
                         {answeredQuestions.length > 0 ? (
                           answeredQuestions.map((question) => (
-                            <tr key={question._id} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-6 py-4 font-bold text-slate-900 text-sm">{question.title}</td>
-                              <td className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">{question.subject}</td>
-                              <td className="px-6 py-4 text-sm font-black text-emerald-600 text-right">+{question.credits}</td>
+                            <tr key={question._id} className="hover:bg-purple-50/50 transition-colors">
+                              <td className="px-5 py-3 font-medium text-gray-900 text-sm">{question.title}</td>
+                              <td className="px-5 py-3 text-[11px] font-medium text-gray-500 uppercase tracking-wider">{question.subject}</td>
+                              <td className="px-5 py-3 text-sm font-semibold text-gray-900 text-right">+{question.credits}</td>
                             </tr>
                           ))
                         ) : (
@@ -817,66 +819,66 @@ export default function DashboardPage() {
               )}
 
               {activeTab === 'active-sessions' && (
-                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider">Live Now</h3>
+                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <h3 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider pb-2 border-b border-purple-100">Live Now</h3>
                       {sessions.ongoing.length > 0 ? (
                         sessions.ongoing.map((session) => (
-                          <motion.div key={session._id} variants={itemVariants} className="bg-white p-6 rounded-3xl border-2 border-indigo-100 shadow-lg shadow-indigo-50 flex justify-between items-center group">
+                          <motion.div key={session._id} variants={itemVariants} className="bg-white p-5 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10 flex justify-between items-center group hover:border-purple-200 transition-colors">
                             <div>
-                              <p className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{session.title}</p>
-                              <p className="text-xs font-bold text-slate-400 mt-1 uppercase">Peer: {session.peer}</p>
+                              <p className="font-semibold text-sm text-gray-900 group-hover:text-gray-600 transition-colors">{session.title}</p>
+                              <p className="text-[10px] font-medium text-gray-500 mt-1 uppercase">Peer: {session.peer}</p>
                             </div>
-                            <button onClick={() => router.push(`/session/${session._id}`)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-black text-xs">Join</button>
+                            <button onClick={() => router.push(`/session/${session._id}`)} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium text-xs hover:from-purple-700 to-indigo-700 transition-colors">Join</button>
                           </motion.div>
                         ))
                       ) : (
-                        <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center">
-                          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">No Active Sessions</p>
+                        <div className="bg-purple-50/50 rounded-xl border border-dashed border-purple-200 p-6 text-center">
+                          <p className="text-gray-500 text-xs font-medium">No Active Sessions</p>
                         </div>
                       )}
                     </div>
 
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider">Scheduled</h3>
+                    <div className="space-y-3">
+                      <h3 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider pb-2 border-b border-purple-100">Scheduled</h3>
                       {sessions.scheduled.length > 0 ? (
                         sessions.scheduled.map((session) => (
-                          <div key={session._id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex justify-between items-center">
+                          <div key={session._id} className="bg-white p-5 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10 flex justify-between items-center">
                             <div>
-                              <p className="font-bold text-slate-900">{session.title}</p>
-                              <p className="text-xs font-bold text-slate-400 mt-1 uppercase">Peer: {session.peer}</p>
+                              <p className="font-semibold text-sm text-gray-900">{session.title}</p>
+                              <p className="text-[10px] font-medium text-gray-500 mt-1 uppercase">Peer: {session.peer}</p>
                             </div>
-                            <p className="text-xs font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg">{session.time}</p>
+                            <p className="text-[10px] font-semibold text-gray-700 bg-purple-100 border border-purple-100 px-2 py-1 rounded-lg">{session.time}</p>
                           </div>
                         ))
                       ) : (
-                        <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center">
-                          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">No Scheduled Sessions</p>
+                        <div className="bg-purple-50/50 rounded-xl border border-dashed border-purple-200 p-6 text-center">
+                          <p className="text-gray-500 text-xs font-medium">No Scheduled Sessions</p>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-wider">History & Feedback</h3>
+                  <div className="space-y-3">
+                    <h3 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider pb-2 border-b border-purple-100">History & Feedback</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {sessions.completed.map((session) => (
-                        <div key={session._id} className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
-                          <p className="font-bold text-slate-900 text-sm truncate">{session.title}</p>
-                          <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">{session.peer}</p>
-                          <div className="flex gap-2 mt-4">
+                        <div key={session._id} className="bg-white p-4 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10">
+                          <p className="font-semibold text-gray-900 text-sm truncate">{session.title}</p>
+                          <p className="text-[10px] font-medium text-gray-500 mt-1 uppercase">{session.peer}</p>
+                          <div className="flex gap-2 mt-4 pt-3 border-t border-zinc-100">
                             <button
                               onClick={() => router.push(`/session/${session._id}`)}
-                              className="flex-1 py-2.5 bg-slate-50 text-slate-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                              className="flex-1 py-2 bg-purple-50/50 border border-purple-100 text-gray-700 rounded-xl font-semibold text-[10px] uppercase tracking-wider hover:bg-purple-100 transition-colors"
                             >
-                              Session Log 📜
+                              Log
                             </button>
                             <button
                               onClick={() => router.push(`/quiz/${session._id}`)}
-                              className="flex-1 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all"
+                              className="flex-1 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold text-[10px] uppercase tracking-wider hover:from-purple-700 to-indigo-700 transition-colors"
                             >
-                              Quiz ✍️
+                              Quiz
                             </button>
                           </div>
                         </div>
@@ -887,39 +889,39 @@ export default function DashboardPage() {
               )}
 
               {activeTab === 'credits' && (
-                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-100">
-                      <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Wallet Balance</p>
-                      <p className="text-5xl font-black mt-2 tracking-tighter">💎 {profile.knowledgeCredits}</p>
+                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 rounded-xl text-white shadow-lg shadow-purple-500/10 border border-indigo-500/30">
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">Wallet Balance</p>
+                      <p className="text-3xl font-semibold mt-1 tracking-tight">💎 {profile.knowledgeCredits}</p>
                     </div>
-                    <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Earned</p>
-                      <p className="text-4xl font-black mt-2 text-emerald-600 tracking-tighter">
+                    <div className="bg-white p-6 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10">
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Total Earned</p>
+                      <p className="text-3xl font-semibold mt-1 text-green-600 tracking-tight">
                         +{transactions.filter(t => t.type === 'earned').reduce((sum, t) => sum + Number(t.amount.replace('+', '')), 0)}
                       </p>
                     </div>
-                    <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Spent</p>
-                      <p className="text-4xl font-black mt-2 text-rose-600 tracking-tighter">
+                    <div className="bg-white p-6 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10">
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Total Spent</p>
+                      <p className="text-3xl font-semibold mt-1 text-red-600 tracking-tight">
                         -{transactions.filter(t => t.type === 'spent').reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                    <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                      <h3 className="font-black text-slate-900 uppercase tracking-wider text-sm">Transaction Ledger</h3>
-                      <button className="text-xs font-bold text-slate-400 hover:text-indigo-600">Download CSV</button>
+                  <div className="bg-white rounded-xl border border-purple-100 overflow-hidden shadow-lg shadow-purple-500/10">
+                    <div className="px-5 py-4 border-b border-purple-100 flex justify-between items-center bg-purple-50/50/50">
+                      <h3 className="font-semibold text-gray-900 text-sm">Transaction Ledger</h3>
+                      <button className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors">Download CSV</button>
                     </div>
-                    <div className="divide-y divide-slate-100">
+                    <div className="divide-y divide-zinc-200">
                       {transactions.map((t) => (
-                        <div key={t._id} className="p-5 flex justify-between items-center hover:bg-slate-50 transition-colors">
+                        <div key={t._id} className="px-5 py-3 flex justify-between items-center hover:bg-purple-50/50 transition-colors">
                           <div>
-                            <p className="text-sm font-bold text-slate-900">{t.reason}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{t.date}</p>
+                            <p className="text-sm font-medium text-gray-900">{t.reason}</p>
+                            <p className="text-[10px] font-medium text-gray-500 uppercase mt-0.5">{t.date}</p>
                           </div>
-                          <span className={`text-sm font-black ${t.type === 'earned' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <span className={`text-sm font-semibold ${t.type === 'earned' ? 'text-green-600' : 'text-red-600'}`}>
                             {t.amount}
                           </span>
                         </div>
@@ -930,30 +932,29 @@ export default function DashboardPage() {
               )}
 
               {activeTab === 'badges' && (
-                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-slate-900 tracking-tight">Hall of Fame</h3>
-                    <span className="text-xs font-bold text-slate-400 uppercase">{badges.filter(b => b.earned).length}/{badges.length} Unlocked</span>
+                <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-purple-100">
+                    <h3 className="text-sm font-semibold text-gray-900 tracking-tight">Hall of Fame</h3>
+                    <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{badges.filter(b => b.earned).length}/{badges.length} Unlocked</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {badges.map((badge) => (
                       <motion.div
                         key={badge._id}
                         variants={itemVariants}
-                        whileHover={badge.earned ? { y: -5, scale: 1.05 } : {}}
-                        className={`relative p-6 text-center rounded-[2rem] border-2 transition-all ${badge.earned
-                          ? 'bg-white border-indigo-100 shadow-lg shadow-indigo-50 grayscale-0'
-                          : 'bg-slate-50 border-slate-100 opacity-40 grayscale pointer-events-none'
+                        className={`relative p-5 text-center rounded-xl border transition-colors ${badge.earned
+                          ? 'bg-white border-purple-100 shadow-lg shadow-purple-500/10 hover:border-purple-200'
+                          : 'bg-purple-50/50 border-purple-100 opacity-60 grayscale pointer-events-none'
                           }`}
                       >
-                        <div className="text-5xl mb-4 drop-shadow-sm">{badge.icon}</div>
-                        <p className="font-black text-slate-900 text-xs uppercase tracking-tight">{badge.name}</p>
-                        <div className="mt-4 pt-4 border-t border-slate-50">
-                          <p className="text-[9px] font-bold text-slate-400 uppercase leading-relaxed">{badge.description}</p>
+                        <div className="text-4xl mb-3 opacity-90">{badge.icon}</div>
+                        <p className="font-semibold text-gray-900 text-xs uppercase tracking-tight">{badge.name}</p>
+                        <div className="mt-3 pt-3 border-t border-zinc-100">
+                          <p className="text-[9px] font-medium text-gray-500 uppercase leading-relaxed">{badge.description}</p>
                         </div>
                         {!badge.earned && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-slate-50/10 backdrop-blur-[1px] rounded-[2rem]">
-                            <span className="text-xl opacity-20">🔒</span>
+                          <div className="absolute inset-0 flex items-center justify-center bg-purple-50/50/50 backdrop-blur-[0.5px] rounded-xl">
+                            <span className="text-lg opacity-40">🔒</span>
                           </div>
                         )}
                       </motion.div>
@@ -963,32 +964,31 @@ export default function DashboardPage() {
               )}
 
               {activeTab === 'profile' && (
-                <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-4xl mx-auto space-y-8">
-                  <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-50" />
-                    <div className="relative z-10">
-                      <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-10 pb-10 border-b border-slate-100">
-                        <div className="w-24 h-24 rounded-[2rem] bg-indigo-600 flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-indigo-100 ring-8 ring-indigo-50">
+                <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-4xl mx-auto space-y-6">
+                  <div className="bg-white p-8 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10">
+                    <div>
+                      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8 pb-8 border-b border-purple-100">
+                        <div className="w-20 h-20 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-purple-500/10 border border-indigo-500/30">
                           {initials}
                         </div>
                         <div className="text-center md:text-left flex-1 min-w-0">
-                          <h3 className="text-3xl font-black text-slate-900 tracking-tight mb-1">{profile.name}</h3>
-                          <p className="text-sm font-bold text-indigo-600 uppercase tracking-widest mb-4">{profile.role}</p>
-                          <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                            <span className="px-4 py-1.5 bg-slate-50 rounded-xl text-xs font-bold text-slate-500 border border-slate-100">{profile.email}</span>
-                            <span className="px-4 py-1.5 bg-slate-50 rounded-xl text-xs font-bold text-slate-500 border border-slate-100">{profile.institution || 'Individual Learner'}</span>
+                          <h3 className="text-2xl font-semibold text-gray-900 tracking-tight mb-1">{profile.name}</h3>
+                          <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-3">{profile.role}</p>
+                          <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                            <span className="px-3 py-1 bg-purple-50/50 rounded-lg text-[10px] font-medium text-gray-600 border border-purple-100">{profile.email}</span>
+                            <span className="px-3 py-1 bg-purple-50/50 rounded-lg text-[10px] font-medium text-gray-600 border border-purple-100">{profile.institution || 'Individual Learner'}</span>
                           </div>
                         </div>
-                        <button className="px-6 py-3 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all">Edit Profile</button>
+                        <button className="px-4 py-2 border border-purple-100 rounded-xl text-xs font-semibold hover:bg-purple-50/50 transition-colors">Edit Profile</button>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                          <div className="flex items-center justify-between mb-6">
-                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Expertise Stack</h4>
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Expertise Stack</h4>
                             <button
                               onClick={() => setShowExpertiseModal(true)}
-                              className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline"
+                              className="text-[10px] font-medium text-gray-900 uppercase hover:underline"
                             >
                               + Manage
                             </button>
@@ -996,34 +996,34 @@ export default function DashboardPage() {
                           <div className="flex flex-wrap gap-2">
                             {profile.expertise.length > 0 ? (
                               profile.expertise.map((entry, index) => (
-                                <div key={index} className="group flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl hover:border-indigo-200 hover:bg-white transition-all cursor-default">
-                                  <span className="w-2 h-2 rounded-full bg-indigo-400 group-hover:scale-125 transition-transform" />
-                                  <span className="text-xs font-black text-slate-700">{entry.subject}</span>
-                                  {entry.topic && <span className="text-[10px] font-bold text-slate-400">• {entry.topic}</span>}
+                                <div key={index} className="group flex items-center gap-2 px-3 py-1.5 bg-purple-50/50 border border-purple-100 rounded-lg hover:border-purple-200 hover:bg-white transition-colors cursor-default">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                                  <span className="text-xs font-medium text-gray-700">{entry.subject}</span>
+                                  {entry.topic && <span className="text-[9px] font-medium text-gray-400">• {entry.topic}</span>}
                                   <button
                                     onClick={() => handleRemoveExpertise(index)}
-                                    className="ml-2 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 transition-all"
+                                    className="ml-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-colors"
                                   >
                                     ×
                                   </button>
                                 </div>
                               ))
                             ) : (
-                              <p className="text-sm text-slate-400 italic">No expertise added yet.</p>
+                              <p className="text-[10px] text-gray-400 italic">No expertise added yet.</p>
                             )}
                           </div>
                         </div>
 
                         <div>
-                          <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Learning Metrics</h4>
-                          <div className="space-y-4">
-                            <div className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                              <span className="text-xs font-bold text-slate-500">Global Reputation</span>
-                              <span className="text-sm font-black text-slate-900">{profile.reputationPoints} Points</span>
+                          <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-4">Learning Metrics</h4>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center p-3 bg-purple-50/50 rounded-lg border border-purple-100">
+                              <span className="text-xs font-medium text-gray-500">Global Reputation</span>
+                              <span className="text-xs font-semibold text-gray-900">{profile.reputationPoints} Points</span>
                             </div>
-                            <div className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                              <span className="text-xs font-bold text-slate-500">Preferred Language</span>
-                              <span className="text-sm font-black text-slate-900">{profile.preferredLanguage}</span>
+                            <div className="flex justify-between items-center p-3 bg-purple-50/50 rounded-lg border border-purple-100">
+                              <span className="text-xs font-medium text-gray-500">Preferred Language</span>
+                              <span className="text-xs font-semibold text-gray-900">{profile.preferredLanguage}</span>
                             </div>
                           </div>
                         </div>
@@ -1038,24 +1038,25 @@ export default function DashboardPage() {
             {/* Expertise Management Modal */}
             <AnimatePresence>
               {showExpertiseModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gradient-to-r from-purple-600 to-indigo-600/40 backdrop-blur-sm">
                   <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
+                    initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full overflow-hidden flex flex-col border border-white"
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    className="bg-white rounded-lg shadow-xl max-w-md w-full flex flex-col border border-purple-100 overflow-hidden"
                   >
-                    <div className="p-8 border-b border-slate-100 bg-linear-to-br from-indigo-600 to-violet-700 text-white">
-                      <h3 className="text-2xl font-black tracking-tight">Add Expertise</h3>
-                      <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-1">Refine your teaching profile</p>
+                    <div className="px-6 py-5 border-b border-purple-100 bg-white">
+                      <h3 className="text-lg font-semibold tracking-tight text-gray-900">Add Expertise</h3>
+                      <p className="text-xs font-medium text-gray-500 mt-1">Refine your teaching profile</p>
                     </div>
 
-                    <div className="p-8 space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Subject</label>
+                    <div className="p-6 space-y-5 bg-purple-50/50/50">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-gray-700 uppercase tracking-wider">Subject</label>
                         <select
                           value={selectedSubjectId}
                           onChange={(e) => setSelectedSubjectId(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all appearance-none cursor-pointer"
+                          className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                         >
                           <option value="">Select a subject...</option>
                           {allSubjects.map((s) => (
@@ -1067,15 +1068,15 @@ export default function DashboardPage() {
                       <AnimatePresence mode="wait">
                         {selectedSubjectId && (
                           <motion.div
-                            initial={{ opacity: 0, y: 10 }}
+                            initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="space-y-2"
+                            className="space-y-1.5"
                           >
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Topic (Optional)</label>
+                            <label className="text-[10px] font-semibold text-gray-700 uppercase tracking-wider">Topic (Optional)</label>
                             <select
                               value={selectedTopicName}
                               onChange={(e) => setSelectedTopicName(e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all appearance-none cursor-pointer"
+                              className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                             >
                               <option value="">Any topic</option>
                               {availableTopics.map((t) => (
@@ -1087,17 +1088,17 @@ export default function DashboardPage() {
                       </AnimatePresence>
                     </div>
 
-                    <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-3">
+                    <div className="px-6 py-4 bg-white border-t border-purple-100 flex gap-3 justify-end">
                       <button
                         onClick={() => setShowExpertiseModal(false)}
-                        className="flex-1 py-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all"
+                        className="px-4 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleUpdateExpertise}
                         disabled={!selectedSubjectId || isUpdatingExpertise}
-                        className="flex-2 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all active:scale-95 disabled:opacity-30 shadow-lg"
+                        className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-xs font-medium hover:from-purple-700 to-indigo-700 transition-colors disabled:opacity-50"
                       >
                         {isUpdatingExpertise ? 'Adding...' : 'Add Subject'}
                       </button>

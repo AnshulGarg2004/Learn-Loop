@@ -14,7 +14,7 @@ export async function POST(
     // Accept fileUrl as either an external link or text snippet, and resourceType as 'link' or 'snippet'
     const { uploadedBy, fileUrl, resourceType, title, timestamp } = body;
 
-    if (!uploadedBy || !fileUrl || !resourceType) {
+    if (!fileUrl || !resourceType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 

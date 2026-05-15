@@ -12,7 +12,7 @@ interface SocketContextType {
   setInitialResources: (initialResources: any[]) => void;
   joinSession: (sessionId: string, userId: string, userName: string, role: string) => void;
   sendMessage: (sessionId: string, message: string) => void;
-  shareResource: (sessionId: string, resourceType: string, fileUrl: string, title: string) => void;
+  shareResource: (sessionId: string, resourceType: string, fileUrl: string, title: string, userId?: string) => void;
   drawOnCanvas: (sessionId: string, drawData: any) => void;
   clearCanvas: (sessionId: string) => void;
   moveCursor: (sessionId: string, x: number, y: number) => void;
@@ -81,8 +81,8 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     socketRef.current?.emit('send-message', { sessionId, message });
   };
 
-  const shareResource = (sessionId: string, resourceType: string, fileUrl: string, title: string) => {
-    socketRef.current?.emit('share-resource', { sessionId, resourceType, fileUrl, title });
+  const shareResource = (sessionId: string, resourceType: string, fileUrl: string, title: string, userId?: string) => {
+    socketRef.current?.emit('share-resource', { sessionId, resourceType, fileUrl, title, userId });
   };
 
   const drawOnCanvas = (sessionId: string, drawData: any) => {

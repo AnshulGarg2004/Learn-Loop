@@ -142,9 +142,9 @@ app.prepare().then(() => {
 
     // Handle resource sharing
     socket.on('share-resource', (data) => {
-      const { sessionId, resourceType, fileUrl, title } = data;
+      const { sessionId, resourceType, fileUrl, title, userId } = data;
       const timestamp = new Date().toISOString();
-      const uploadedBy = socket.data.userId;
+      const uploadedBy = socket.data.userId || userId;
 
       io.to(`session-${sessionId}`).emit('receive-resource', {
         uploadedBy,

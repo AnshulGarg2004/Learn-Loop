@@ -144,7 +144,7 @@ export default function SessionPage() {
   const handleShareResource = (e: React.FormEvent) => {
     e.preventDefault();
     if (resourceTitle.trim() && resourceContent.trim()) {
-      shareResource(sessionId, resourceType, resourceContent, resourceTitle);
+      shareResource(sessionId, resourceType, resourceContent, resourceTitle, user?.id);
       setResourceTitle('');
       setResourceContent('');
     }
@@ -259,46 +259,46 @@ export default function SessionPage() {
 
   if (sessionLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 gap-4">
+      <div className="flex flex-col items-center justify-center h-screen bg-purple-50/50 gap-4">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-          className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full"
+          className="w-10 h-10 border-2 border-purple-100 border-t-purple-600 rounded-full"
         />
-        <p className="text-slate-500 font-bold text-sm animate-pulse tracking-widest uppercase">Initializing Session...</p>
+        <p className="text-gray-500 font-medium text-xs uppercase tracking-wider">Initializing Workspace</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
+    <div className="flex flex-col h-screen bg-purple-50/50 text-gray-900 font-sans overflow-hidden">
       {/* Top Navigation / Header */}
-      <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between z-30 shrink-0">
+      <header className="h-16 bg-white border-b border-purple-100 px-6 flex items-center justify-between z-30 shrink-0">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-indigo-100">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center text-white font-semibold text-xs shadow-lg shadow-purple-500/10 border border-indigo-500/30">
             LL
           </div>
           <div>
-            <h1 className="text-sm font-black tracking-tight text-slate-900 leading-none">
+            <h1 className="text-sm font-semibold tracking-tight text-gray-900 leading-none">
               {sessionData?.topic || 'Tutoring Session'}
             </h1>
-            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-1">
+            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mt-1">
               {sessionData?.subject || 'Learning Hub'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200">
-            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-purple-50/50 rounded-xl border border-purple-100">
+            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-[10px] font-medium uppercase tracking-wider text-gray-600">
               {isConnected ? 'Network Stable' : 'Connecting...'}
             </span>
           </div>
           <button
             onClick={handleEndSession}
             disabled={completingSession || sessionData?.status === 'completed'}
-            className="px-6 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all disabled:opacity-50 active:scale-95 shadow-sm"
+            className="px-4 py-1.5 bg-white text-red-600 border border-purple-100 rounded-xl text-[10px] font-medium uppercase tracking-wider hover:bg-red-50 transition-colors disabled:opacity-50 shadow-lg shadow-purple-500/10"
           >
             {sessionData?.status === 'completed' ? 'Session Ended' : completingSession ? 'Ending...' : 'End Session'}
           </button>
@@ -307,43 +307,44 @@ export default function SessionPage() {
 
       <div className="flex-1 flex overflow-hidden relative">
         {/* Left Control Bar (Vertical) */}
-        <nav className="w-20 bg-white border-r border-slate-200 flex flex-col items-center py-6 gap-6 z-20 shrink-0">
+        <nav className="w-16 bg-white border-r border-purple-100 flex flex-col items-center py-6 gap-4 z-20 shrink-0">
           <button
             onClick={() => setViewMode('video')}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-              viewMode === 'video' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:bg-slate-50'
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+              viewMode === 'video' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/10' : 'text-gray-500 hover:bg-purple-100 hover:text-gray-900'
             }`}
             title="Video Call"
           >
-            <span className="text-xl">🎥</span>
+            <span className="text-lg">🎥</span>
           </button>
           <button
             onClick={() => setViewMode('whiteboard')}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-              viewMode === 'whiteboard' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:bg-slate-50'
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+              viewMode === 'whiteboard' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/10' : 'text-gray-500 hover:bg-purple-100 hover:text-gray-900'
             }`}
             title="Whiteboard"
           >
-            <span className="text-xl">🎨</span>
+            <span className="text-lg">🎨</span>
           </button>
           <div className="mt-auto flex flex-col gap-4 items-center">
-            <div className="w-10 h-10 rounded-full border-2 border-indigo-100 p-0.5 overflow-hidden">
-               <img src={user?.imageUrl} alt="Me" className="w-full h-full object-cover rounded-full" />
+            <div className="w-8 h-8 rounded-xl border border-purple-100 p-0.5 overflow-hidden">
+               <img src={user?.imageUrl} alt="Me" className="w-full h-full object-cover rounded-lg" />
             </div>
           </div>
         </nav>
 
         {/* Main Workspace Stage */}
-        <main className="flex-1 relative flex flex-col min-w-0 bg-slate-50">
-          <div className="flex-1 p-6 overflow-hidden">
+        <main className="flex-1 relative flex flex-col min-w-0 bg-purple-50/50">
+          <div className="flex-1 p-4 overflow-hidden">
             <AnimatePresence mode="wait">
               {viewMode === 'video' ? (
                 <motion.div
                   key="video"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.05 }}
-                  className="w-full h-full bg-slate-900 rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col border-4 border-white"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-lg shadow-purple-500/10 relative overflow-hidden flex flex-col border border-indigo-500/30"
                 >
                   {/* Real-time Video Conferencing */}
                   <div className="flex-1 overflow-hidden">
@@ -351,35 +352,36 @@ export default function SessionPage() {
                   </div>
 
                   {/* On-video Controls */}
-                  <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-4 px-8 py-4 bg-black/60 backdrop-blur-2xl rounded-full border border-white/10 shadow-2xl">
-                    <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all">🎤</button>
-                    <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all">📽️</button>
-                    <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all">🖥️</button>
-                    <div className="w-px h-6 bg-white/20 mx-2" />
-                    <button onClick={handleEndSession} className="w-10 h-10 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center transition-all shadow-lg shadow-rose-500/20">📵</button>
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-3 bg-black/80 backdrop-blur-md rounded-xl border border-white/10 shadow-lg">
+                    <button className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">🎤</button>
+                    <button className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">📽️</button>
+                    <button className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors">🖥️</button>
+                    <div className="w-px h-5 bg-white/20 mx-1" />
+                    <button onClick={handleEndSession} className="w-8 h-8 rounded-lg bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-colors shadow-lg shadow-purple-500/10">📵</button>
                   </div>
                 </motion.div>
               ) : (
                 <motion.div
                   key="whiteboard"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.05 }}
-                  className="w-full h-full bg-white rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col border border-slate-200"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-full h-full bg-white rounded-lg shadow-lg shadow-purple-500/10 relative overflow-hidden flex flex-col border border-purple-100"
                 >
-                   <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                   <div className="px-4 py-3 border-b border-purple-100 flex justify-between items-center bg-purple-50/50/50">
                       <div className="flex items-center gap-3">
-                         <span className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">🎨</span>
-                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-700">Collaborative Whiteboard</h3>
+                         <span className="w-6 h-6 rounded-xl bg-purple-100 flex items-center justify-center text-xs border border-purple-100">🎨</span>
+                         <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-700">Collaborative Whiteboard</h3>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-3">
                          <button 
                            onClick={() => setViewMode('video')}
-                           className="px-4 py-1.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2"
+                           className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-[10px] font-medium uppercase tracking-wider hover:from-purple-700 to-indigo-700 transition-colors shadow-lg shadow-purple-500/10 flex items-center gap-2"
                          >
-                            <span>🎥</span> Join Video Call
+                            <span>🎥</span> Video Call
                          </button>
-                         <span className="px-3 py-1 bg-indigo-50 rounded-full text-[9px] font-black text-indigo-600 uppercase tracking-tighter">Live Syncing</span>
+                         <span className="px-2 py-1 bg-green-50 border border-green-200 rounded-lg text-[9px] font-semibold text-green-700 uppercase tracking-wider">Live Sync</span>
                       </div>
                    </div>
                    <div className="flex-1 relative">
@@ -395,28 +397,28 @@ export default function SessionPage() {
         </main>
 
         {/* Right Chat Sidebar */}
-        <aside className="w-[22rem] bg-white border-l border-slate-200 flex flex-col z-20 shrink-0">
-          <div className="flex border-b border-slate-200 p-2 gap-1">
+        <aside className="w-80 bg-white border-l border-purple-100 flex flex-col z-20 shrink-0">
+          <div className="flex border-b border-purple-100 p-2 gap-1 bg-purple-50/50/50">
              <button
                 onClick={() => setActiveTab('tutor')}
-                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  activeTab === 'tutor' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-400 hover:text-slate-600'
+                className={`flex-1 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                  activeTab === 'tutor' ? 'bg-white text-gray-900 shadow-lg shadow-purple-500/10 border border-purple-100' : 'text-gray-500 hover:text-purple-600 border border-transparent'
                 }`}
              >
                 💬 Chat
              </button>
              <button
                 onClick={() => setActiveTab('ai-mentor')}
-                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  activeTab === 'ai-mentor' ? 'bg-violet-600 text-white shadow-lg shadow-violet-100' : 'text-slate-400 hover:text-slate-600'
+                className={`flex-1 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                  activeTab === 'ai-mentor' ? 'bg-white text-gray-900 shadow-lg shadow-purple-500/10 border border-purple-100' : 'text-gray-500 hover:text-purple-600 border border-transparent'
                 }`}
              >
                 🤖 AI
              </button>
              <button
                 onClick={() => setActiveTab('notes')}
-                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  activeTab === 'notes' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'text-slate-400 hover:text-slate-600'
+                className={`flex-1 py-2 rounded-xl text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                  activeTab === 'notes' ? 'bg-white text-gray-900 shadow-lg shadow-purple-500/10 border border-purple-100' : 'text-gray-500 hover:text-purple-600 border border-transparent'
                 }`}
              >
                 📚 Notes
@@ -431,25 +433,26 @@ export default function SessionPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                   className="absolute inset-0 flex flex-col h-full overflow-hidden"
                 >
-                  <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-purple-200">
                     {messages.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-                         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 text-3xl">📭</div>
-                         <p className="text-[10px] font-black uppercase tracking-widest">No Messages Yet</p>
+                      <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+                         <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-3 text-xl border border-purple-100">📭</div>
+                         <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">No Messages Yet</p>
                       </div>
                     ) : (
                       messages.map((msg, idx) => (
                         <div key={idx} className={`flex flex-col ${msg.senderId === user?.id ? 'items-end' : 'items-start'}`}>
-                          <div className={`px-4 py-2.5 rounded-2xl text-sm font-medium max-w-[85%] ${
+                          <div className={`px-3 py-2 rounded-xl text-sm font-medium max-w-[85%] border shadow-lg shadow-purple-500/10 ${
                             msg.senderId === user?.id
-                              ? 'bg-indigo-600 text-white rounded-br-none shadow-md'
-                              : 'bg-slate-100 text-slate-900 rounded-bl-none'
+                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-indigo-500/30'
+                              : 'bg-white text-gray-900 border-purple-100'
                           }`}>
                             {msg.message}
                           </div>
-                          <span className="text-[9px] font-bold text-slate-400 mt-2 px-1">
+                          <span className="text-[9px] font-semibold text-gray-500 mt-1 px-1">
                             {msg.senderName} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -458,19 +461,19 @@ export default function SessionPage() {
                     <div ref={chatEndRef} />
                   </div>
 
-                  <form onSubmit={handleSendMessage} className="p-4 bg-slate-50 border-t border-slate-200 shrink-0">
-                    <div className="relative">
+                  <form onSubmit={handleSendMessage} className="p-4 bg-purple-50/50 border-t border-purple-100 shrink-0">
+                    <div className="relative flex items-center">
                       <input
                         type="text"
                         value={chatMessage}
                         onChange={(e) => setChatMessage(e.target.value)}
-                        placeholder="Say something nice..."
-                        className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all font-medium pr-12"
+                        placeholder="Type a message..."
+                        className="w-full bg-white border border-purple-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors pr-12"
                       />
                       <button
                         type="submit"
                         disabled={!isConnected || !chatMessage.trim() || sessionData?.status === 'completed'}
-                        className="absolute right-2 top-2 w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center hover:bg-indigo-700 disabled:opacity-30 transition-all shadow-sm"
+                        className="absolute right-1.5 w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg flex items-center justify-center hover:from-purple-700 to-indigo-700 disabled:opacity-50 transition-colors shadow-lg shadow-purple-500/10"
                       >
                         🚀
                       </button>
@@ -485,20 +488,21 @@ export default function SessionPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                   className="absolute inset-0 flex flex-col h-full overflow-hidden"
                 >
-                  <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
-                    <div className="bg-violet-50 border border-violet-100 p-4 rounded-2xl mb-2">
-                       <p className="text-[10px] font-black text-violet-600 uppercase tracking-widest mb-1">AI System Ready</p>
-                       <p className="text-xs text-violet-800 font-medium leading-relaxed">I'm analyzing the session in real-time. Ask me anything about the topics discussed!</p>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-purple-200">
+                    <div className="bg-purple-50/50 border border-purple-100 p-4 rounded-xl mb-2">
+                       <p className="text-[10px] font-semibold text-gray-700 uppercase tracking-wider mb-1">AI System Ready</p>
+                       <p className="text-xs text-gray-600 font-medium leading-relaxed">I'm analyzing the session in real-time. Ask me anything about the topics discussed.</p>
                     </div>
                     
                     {aiMentorMessages.map((msg, idx) => (
                       <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                        <div className={`px-4 py-2.5 rounded-2xl text-sm font-medium max-w-[85%] ${
+                        <div className={`px-3 py-2 rounded-xl text-sm font-medium max-w-[85%] border shadow-lg shadow-purple-500/10 ${
                           msg.role === 'user'
-                            ? 'bg-violet-600 text-white rounded-br-none shadow-md'
-                            : 'bg-white border border-violet-200 text-slate-900 rounded-bl-none shadow-sm'
+                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-indigo-500/30'
+                            : 'bg-white border-purple-100 text-gray-900'
                         }`}>
                           {msg.content}
                         </div>
@@ -506,25 +510,25 @@ export default function SessionPage() {
                     ))}
                     {aiMentorLoading && (
                       <div className="flex flex-col items-start animate-pulse">
-                         <div className="px-4 py-2.5 rounded-2xl bg-slate-100 text-slate-400 text-sm font-bold uppercase tracking-widest">AI is thinking...</div>
+                         <div className="px-3 py-2 rounded-xl bg-purple-100 border border-purple-100 text-gray-500 text-xs font-semibold uppercase tracking-wider">AI is thinking...</div>
                       </div>
                     )}
                     <div ref={aiChatEndRef} />
                   </div>
 
-                  <form onSubmit={handleAIMentorMessage} className="p-4 bg-slate-50 border-t border-slate-200 shrink-0">
-                    <div className="relative">
+                  <form onSubmit={handleAIMentorMessage} className="p-4 bg-purple-50/50 border-t border-purple-100 shrink-0">
+                    <div className="relative flex items-center">
                       <input
                         type="text"
                         value={aiMentorInput}
                         onChange={(e) => setAiMentorInput(e.target.value)}
                         placeholder="Deep dive into this topic..."
-                        className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-violet-500/10 focus:border-violet-600 transition-all font-medium pr-12"
+                        className="w-full bg-white border border-purple-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors pr-12"
                       />
                       <button
                         type="submit"
                         disabled={aiMentorLoading || !aiMentorInput.trim() || sessionData?.status === 'completed'}
-                        className="absolute right-2 top-2 w-9 h-9 bg-violet-600 text-white rounded-xl flex items-center justify-center hover:bg-violet-700 disabled:opacity-30 transition-all shadow-sm"
+                        className="absolute right-1.5 w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg flex items-center justify-center hover:from-purple-700 to-indigo-700 disabled:opacity-50 transition-colors shadow-lg shadow-purple-500/10"
                       >
                         🧠
                       </button>
@@ -539,41 +543,42 @@ export default function SessionPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                   className="absolute inset-0 flex flex-col h-full overflow-hidden"
                 >
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-slate-200 bg-slate-50">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-purple-200 bg-purple-50/50">
                     {resources.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-                         <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4 text-3xl">📚</div>
-                         <p className="text-[10px] font-black uppercase tracking-widest">No Notes Shared Yet</p>
+                      <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+                         <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-3 text-xl border border-purple-100">📚</div>
+                         <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">No Notes Shared Yet</p>
                       </div>
                     ) : (
                       resources.map((resource, idx) => (
-                        <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-2">
+                        <div key={idx} className="bg-white p-4 rounded-xl border border-purple-100 shadow-lg shadow-purple-500/10 flex flex-col gap-2">
                            <div className="flex justify-between items-start">
                              <div className="flex items-center gap-2">
-                               <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] ${resource.resourceType === 'link' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                               <span className="w-5 h-5 rounded-lg bg-purple-100 border border-purple-100 flex items-center justify-center text-[10px]">
                                  {resource.resourceType === 'link' ? '🔗' : '📝'}
                                </span>
-                               <p className="font-bold text-slate-900 text-sm">{resource.title}</p>
+                               <p className="font-semibold text-gray-900 text-sm">{resource.title}</p>
                              </div>
-                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                             <p className="text-[9px] font-medium text-gray-500 uppercase tracking-wider">
                                {new Date(resource.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                              </p>
                            </div>
                            
                            {resource.resourceType === 'link' ? (
-                             <a href={resource.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl block truncate mt-1">
+                             <a href={resource.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-gray-700 hover:text-gray-900 bg-purple-50/50 border border-purple-100 px-3 py-2 rounded-lg block truncate mt-1 hover:border-purple-200 transition-colors">
                                {resource.fileUrl}
                              </a>
                            ) : (
-                             <div className="bg-slate-100 text-slate-800 border border-slate-200 text-xs font-mono p-4 rounded-xl mt-2 overflow-x-auto whitespace-pre-wrap max-h-64 scrollbar-thin">
+                             <div className="bg-purple-50/50 text-gray-800 border border-purple-100 text-xs font-mono p-3 rounded-lg mt-2 overflow-x-auto whitespace-pre-wrap max-h-64 scrollbar-thin">
                                {resource.fileUrl}
                              </div>
                            )}
                            
                            {resource.uploadedBy === user?.id && (
-                             <p className="text-[9px] font-black text-slate-400 text-right mt-1">Shared by you</p>
+                             <p className="text-[9px] font-medium text-gray-400 text-right mt-1">Shared by you</p>
                            )}
                         </div>
                       ))
@@ -581,25 +586,25 @@ export default function SessionPage() {
                     <div ref={notesEndRef} />
                   </div>
 
-                  <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+                  <div className="p-4 bg-white border-t border-purple-100 shrink-0">
                     {sessionData?.status === 'completed' ? (
-                      <div className="text-center p-3 bg-slate-50 rounded-xl border border-slate-200">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Session Completed</p>
+                      <div className="text-center p-3 bg-purple-50/50 rounded-xl border border-purple-100">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Session Completed</p>
                       </div>
                     ) : (
                       <form onSubmit={handleShareResource} className="flex flex-col gap-3">
-                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                        <div className="flex bg-purple-100 p-1 rounded-xl">
                           <button
                             type="button"
                             onClick={() => setResourceType('link')}
-                            className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${resourceType === 'link' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}
+                            className={`flex-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-lg transition-colors ${resourceType === 'link' ? 'bg-white text-gray-900 shadow-lg shadow-purple-500/10 border border-purple-100' : 'text-gray-500 hover:text-purple-600'}`}
                           >
                             🔗 Link
                           </button>
                           <button
                             type="button"
                             onClick={() => setResourceType('snippet')}
-                            className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${resourceType === 'snippet' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}
+                            className={`flex-1 py-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-lg transition-colors ${resourceType === 'snippet' ? 'bg-white text-gray-900 shadow-lg shadow-purple-500/10 border border-purple-100' : 'text-gray-500 hover:text-purple-600'}`}
                           >
                             📝 Snippet
                           </button>
@@ -611,7 +616,7 @@ export default function SessionPage() {
                           value={resourceTitle}
                           onChange={(e) => setResourceTitle(e.target.value)}
                           placeholder="Title (e.g. Google Doc Notes)"
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-bold"
+                          className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                         />
                         
                         {resourceType === 'link' ? (
@@ -621,7 +626,7 @@ export default function SessionPage() {
                             value={resourceContent}
                             onChange={(e) => setResourceContent(e.target.value)}
                             placeholder="https://..."
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-medium"
+                            className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors"
                           />
                         ) : (
                           <textarea
@@ -630,14 +635,14 @@ export default function SessionPage() {
                             onChange={(e) => setResourceContent(e.target.value)}
                             placeholder="Paste your text or code here..."
                             rows={3}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-medium scrollbar-thin"
+                            className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors scrollbar-thin"
                           />
                         )}
                         
                         <button
                           type="submit"
                           disabled={!isConnected || !resourceTitle.trim() || !resourceContent.trim()}
-                          className="w-full py-2.5 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-600/20"
+                          className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold text-xs uppercase tracking-wider hover:from-purple-700 to-indigo-700 disabled:opacity-50 transition-colors shadow-lg shadow-purple-500/10"
                         >
                           Share Resource
                         </button>
@@ -654,33 +659,32 @@ export default function SessionPage() {
       {/* Summary Modal */}
       <AnimatePresence>
         {showSummaryModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gradient-to-r from-purple-600 to-indigo-600/40 backdrop-blur-sm">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              className="bg-white rounded-[3rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-white"
+              className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-purple-100"
             >
-              <div className="p-10 border-b border-slate-100 bg-linear-to-br from-indigo-600 to-violet-700 text-white relative">
-                <div className="absolute top-0 right-0 p-10 opacity-10 text-9xl font-black italic">LEARN</div>
-                <h2 className="text-4xl font-black tracking-tight mb-2 relative z-10">Session Complete! 🎉</h2>
-                <p className="font-bold opacity-80 uppercase tracking-[0.3em] text-xs relative z-10">Knowledge Sync Successful</p>
+              <div className="px-8 py-6 border-b border-purple-100 bg-white relative">
+                <h2 className="text-xl font-semibold tracking-tight mb-1 text-gray-900">Session Complete! 🎉</h2>
+                <p className="font-medium text-gray-500 uppercase tracking-wider text-[10px]">Knowledge Sync Successful</p>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-10 space-y-10">
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-purple-50/50/30">
                 {/* Summary Section */}
-                <section className="space-y-4">
-                  <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-xl">📝</div>
-                     <h3 className="text-xl font-black text-slate-900 tracking-tight">AI Insights</h3>
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2">
+                     <span className="text-lg">📝</span>
+                     <h3 className="text-sm font-semibold text-gray-900 tracking-tight">AI Insights</h3>
                   </div>
-                  <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200">
-                    <p className="text-slate-600 leading-relaxed font-medium italic">
+                  <div className="bg-white rounded-xl p-5 border border-purple-100 shadow-lg shadow-purple-500/10">
+                    <p className="text-gray-600 text-sm leading-relaxed font-medium">
                       "{summary?.conciseSummary || 'Generating your personalized summary...'}"
                     </p>
                     {summary?.importantConcepts && (
-                      <div className="mt-6 pt-6 border-t border-slate-200 flex flex-wrap gap-2">
+                      <div className="mt-4 pt-4 border-t border-purple-100 flex flex-wrap gap-2">
                         {summary.importantConcepts.map((c: string, i: number) => (
-                          <span key={i} className="px-4 py-1.5 bg-white border border-slate-200 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">
+                          <span key={i} className="px-3 py-1 bg-purple-50/50 border border-purple-100 text-gray-700 rounded-lg text-[10px] font-semibold uppercase tracking-wider">
                             {c}
                           </span>
                         ))}
@@ -691,18 +695,18 @@ export default function SessionPage() {
 
                 {/* Rating Section (Student only) */}
                 {sessionData?.tutor?.clerkId !== user?.id && (
-                  <section className="space-y-6">
-                    <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center text-xl">⭐</div>
-                       <h3 className="text-xl font-black text-slate-900 tracking-tight">Rate your Tutor</h3>
+                  <section className="space-y-3">
+                    <div className="flex items-center gap-2">
+                       <span className="text-lg">⭐</span>
+                       <h3 className="text-sm font-semibold text-gray-900 tracking-tight">Rate your Tutor</h3>
                     </div>
-                    <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200 space-y-6">
-                      <div className="flex justify-center gap-4">
+                    <div className="bg-white rounded-xl p-5 border border-purple-100 shadow-lg shadow-purple-500/10 space-y-5">
+                      <div className="flex gap-2">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <button
                             key={star}
                             onClick={() => setRating(star)}
-                            className={`text-4xl transition-all transform hover:scale-110 ${star <= rating ? 'grayscale-0' : 'grayscale opacity-30'}`}
+                            className={`text-2xl transition-colors hover:scale-105 ${star <= rating ? 'text-yellow-400' : 'text-purple-200 grayscale opacity-50'}`}
                           >
                             {star <= rating ? '⭐' : '☆'}
                           </button>
@@ -712,42 +716,42 @@ export default function SessionPage() {
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                         placeholder="Any extra feedback for the tutor?"
-                        className="w-full bg-white border border-slate-200 rounded-2xl p-5 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-600 transition-all font-medium min-h-[100px]"
+                        className="w-full bg-purple-50/50 border border-purple-100 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 transition-colors font-medium min-h-[80px]"
                       />
                     </div>
                   </section>
                 )}
 
                 {/* Actions */}
-                <section className="space-y-6">
-                  <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center text-xl">🚀</div>
-                     <h3 className="text-xl font-black text-slate-900 tracking-tight">Next Milestones</h3>
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2">
+                     <span className="text-lg">🚀</span>
+                     <h3 className="text-sm font-semibold text-gray-900 tracking-tight">Next Milestones</h3>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       onClick={() => router.push('/dashboard')}
-                      className="p-6 bg-white border-2 border-slate-100 rounded-3xl hover:border-indigo-500 hover:shadow-xl transition-all text-left group"
+                      className="p-4 bg-white border border-purple-100 rounded-xl hover:border-purple-400 hover:shadow-lg shadow-purple-500/10 transition-all text-left group flex flex-col justify-center"
                     >
-                      <p className="font-black text-slate-900 uppercase tracking-widest text-[10px] mb-1 group-hover:text-indigo-600">Hub</p>
-                      <p className="text-lg font-black tracking-tight">Back to Dashboard</p>
+                      <p className="font-semibold text-gray-500 uppercase tracking-wider text-[10px] mb-0.5 group-hover:text-gray-900 transition-colors">Hub</p>
+                      <p className="text-sm font-semibold tracking-tight text-gray-900">Back to Dashboard</p>
                     </button>
                     <button
                       onClick={() => router.push(`/quiz/${sessionId}`)}
-                      className="p-6 bg-indigo-600 rounded-3xl text-white hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-200 transition-all text-left group"
+                      className="p-4 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl text-white hover:from-purple-700 to-indigo-700 hover:shadow-lg shadow-purple-500/10 transition-all text-left group flex flex-col justify-center"
                     >
-                      <p className="font-black text-white/60 uppercase tracking-widest text-[10px] mb-1">Challenge</p>
-                      <p className="text-lg font-black tracking-tight">Take the AI Quiz</p>
+                      <p className="font-medium text-gray-400 uppercase tracking-wider text-[10px] mb-0.5 group-hover:text-purple-300 transition-colors">Challenge</p>
+                      <p className="text-sm font-semibold tracking-tight">Take the AI Quiz</p>
                     </button>
                   </div>
                 </section>
               </div>
 
-              <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-center">
+              <div className="px-8 py-5 bg-white border-t border-purple-100 flex justify-end">
                 <button
                   onClick={finalizeSession}
                   disabled={completingSession}
-                  className="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-black transition-all active:scale-95 shadow-lg disabled:opacity-50"
+                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium text-xs hover:from-purple-700 to-indigo-700 transition-colors shadow-lg shadow-purple-500/10 disabled:opacity-50"
                 >
                   {completingSession ? 'Saving...' : 'Save & Finish'}
                 </button>

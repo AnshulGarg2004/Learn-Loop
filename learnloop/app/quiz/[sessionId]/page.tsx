@@ -65,14 +65,10 @@ export default function QuizPage() {
 
   if (loading || quizzing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
         <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            className="w-16 h-16 border-4 border-fuchsia-200 border-t-fuchsia-600 rounded-full mx-auto mb-4"
-          />
-          <p className="text-slate-600 font-medium italic">Generating your personalized AI quiz...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 mx-auto mb-4" />
+          <p className="text-sm text-zinc-500 font-medium">Generating your quiz...</p>
         </div>
       </div>
     );
@@ -80,14 +76,13 @@ export default function QuizPage() {
 
   if (!quizData || !quizData.questions) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-xl max-w-md">
-          <p className="text-4xl mb-4">😕</p>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Quiz Generation Failed</h2>
-          <p className="text-slate-600 mb-6">We couldn't generate a quiz for this session. Please try again later.</p>
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
+        <div className="text-center p-6 bg-white border border-zinc-200 rounded-lg max-w-sm w-full">
+          <h2 className="text-lg font-semibold text-zinc-900 mb-2">Generation Failed</h2>
+          <p className="text-sm text-zinc-500 mb-6">We couldn't generate a quiz for this session. Please try again later.</p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="px-6 py-2 bg-slate-800 text-white rounded-lg font-semibold"
+            className="w-full px-4 py-2 bg-zinc-900 text-white rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors"
           >
             Back to Dashboard
           </button>
@@ -99,23 +94,24 @@ export default function QuizPage() {
   const currentQuestion = quizData.questions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-zinc-50 py-12 px-4 font-sans">
       <div className="max-w-2xl mx-auto">
         {/* Progress */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-slate-500">
+            <span className="text-sm font-medium text-zinc-500">
               Question {currentQuestionIndex + 1} of {quizData.questions.length}
             </span>
-            <span className="text-sm font-bold text-fuchsia-600">
+            <span className="text-sm font-semibold text-zinc-900">
               {Math.round(((currentQuestionIndex + 1) / quizData.questions.length) * 100)}%
             </span>
           </div>
-          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-zinc-200 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${((currentQuestionIndex + 1) / quizData.questions.length) * 100}%` }}
-              className="h-full bg-linear-to-r from-sky-500 to-fuchsia-500"
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="h-full bg-zinc-900"
             />
           </div>
         </div>
@@ -124,38 +120,39 @@ export default function QuizPage() {
           {!showResults ? (
             <motion.div
               key={currentQuestionIndex}
-              initial={{ x: 20, opacity: 0 }}
+              initial={{ x: 10, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -20, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl p-8 border border-slate-100"
+              exit={{ x: -10, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="bg-white rounded-lg shadow-sm p-6 border border-zinc-200"
             >
-              <h2 className="text-xl font-bold text-slate-900 mb-6">
+              <h2 className="text-lg font-semibold text-zinc-900 mb-6 tracking-tight">
                 {currentQuestion.question}
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {currentQuestion.options.map((option: string, idx: number) => (
                   <button
                     key={idx}
                     onClick={() => handleAnswerSelect(idx)}
                     disabled={selectedAnswer !== null}
-                    className={`w-full p-4 rounded-xl text-left border-2 transition-all ${
+                    className={`w-full px-4 py-3 rounded-md text-left border text-sm font-medium transition-colors ${
                       selectedAnswer === idx
                         ? idx === currentQuestion.correctAnswer
-                          ? 'border-green-500 bg-green-50 text-green-700'
-                          : 'border-red-500 bg-red-50 text-red-700'
+                          ? 'border-zinc-900 bg-zinc-50 text-zinc-900'
+                          : 'border-red-300 bg-red-50 text-red-900'
                         : selectedAnswer !== null && idx === currentQuestion.correctAnswer
-                          ? 'border-green-500 bg-green-50 text-green-700'
-                          : 'border-slate-100 hover:border-sky-300'
+                          ? 'border-green-300 bg-green-50 text-green-900'
+                          : 'border-zinc-200 text-zinc-700 hover:border-zinc-400 bg-white'
                     }`}
                   >
                     <div className="flex justify-between items-center">
                       <span>{option}</span>
                       {selectedAnswer !== null && idx === currentQuestion.correctAnswer && (
-                        <span>✅</span>
+                        <span className="text-green-600">✓</span>
                       )}
                       {selectedAnswer === idx && idx !== currentQuestion.correctAnswer && (
-                        <span>❌</span>
+                        <span className="text-red-600">✕</span>
                       )}
                     </div>
                   </button>
@@ -166,14 +163,15 @@ export default function QuizPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-200"
+                  transition={{ duration: 0.2 }}
+                  className="mt-6 p-4 bg-zinc-50 rounded-md border border-zinc-200"
                 >
-                  <p className="text-sm font-bold text-slate-800 mb-1">Explanation:</p>
-                  <p className="text-sm text-slate-600">{currentQuestion.explanation}</p>
+                  <p className="text-sm font-semibold text-zinc-900 mb-1">Explanation</p>
+                  <p className="text-sm text-zinc-600">{currentQuestion.explanation}</p>
                   
                   <button
                     onClick={handleNext}
-                    className="w-full mt-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all"
+                    className="w-full mt-4 py-2 bg-zinc-900 text-white rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors"
                   >
                     {currentQuestionIndex === quizData.questions.length - 1 ? 'See Results' : 'Next Question'}
                   </button>
@@ -182,37 +180,35 @@ export default function QuizPage() {
             </motion.div>
           ) : (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-2xl shadow-xl p-12 text-center border border-slate-100"
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="bg-white rounded-lg shadow-sm p-8 text-center border border-zinc-200"
             >
-              <div className="text-6xl mb-6">
-                {score === quizData.questions.length ? '🏆' : score > quizData.questions.length / 2 ? '👏' : '📚'}
-              </div>
-              <h2 className="text-3xl font-bold text-slate-900 mb-2">Quiz Completed!</h2>
-              <p className="text-slate-500 mb-8">You've mastered the session topic.</p>
+              <h2 className="text-2xl font-semibold text-zinc-900 mb-2 tracking-tight">Quiz Completed</h2>
+              <p className="text-sm text-zinc-500 mb-8">You've mastered the session topic.</p>
               
-              <div className="flex justify-center gap-12 mb-12">
+              <div className="flex justify-center gap-12 mb-8 border-y border-zinc-100 py-6">
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Score</p>
-                  <p className="text-4xl font-black text-fuchsia-600">{score}/{quizData.questions.length}</p>
+                  <p className="text-xs text-zinc-500 mb-1 uppercase tracking-wider font-medium">Score</p>
+                  <p className="text-3xl font-semibold text-zinc-900">{score}/{quizData.questions.length}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Accuracy</p>
-                  <p className="text-4xl font-black text-sky-600">{Math.round((score / quizData.questions.length) * 100)}%</p>
+                  <p className="text-xs text-zinc-500 mb-1 uppercase tracking-wider font-medium">Accuracy</p>
+                  <p className="text-3xl font-semibold text-zinc-900">{Math.round((score / quizData.questions.length) * 100)}%</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="py-4 border-2 border-slate-200 rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition-all"
+                  className="py-2 border border-zinc-200 rounded-md text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
                 >
                   Dashboard
                 </button>
                 <button
                   onClick={() => window.location.reload()}
-                  className="py-4 bg-linear-to-r from-sky-600 to-fuchsia-600 text-white rounded-xl font-bold hover:shadow-lg transition-all"
+                  className="py-2 bg-zinc-900 text-white rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors"
                 >
                   Try Again
                 </button>

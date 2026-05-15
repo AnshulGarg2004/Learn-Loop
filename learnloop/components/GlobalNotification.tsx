@@ -32,38 +32,38 @@ export default function GlobalNotification() {
     <AnimatePresence>
       {incomingSession && (
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 50, scale: 0.9 }}
-          className="fixed bottom-8 right-8 z-[100] max-w-sm w-full"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="fixed bottom-6 right-6 z-[100] max-w-sm w-full"
         >
-          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-indigo-100 p-5 ring-1 ring-black/5">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-2xl shadow-lg shadow-indigo-200 shrink-0">
+          <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-md bg-zinc-900 flex items-center justify-center text-white text-lg shrink-0">
                 🚀
               </div>
               <div className="flex-1">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-1">Tutor Ready!</h3>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  <span className="font-bold text-indigo-600">{incomingSession.tutorName}</span> has accepted your session.
+                <h3 className="text-sm font-semibold text-zinc-900 tracking-tight">Tutor Ready</h3>
+                <p className="text-sm text-zinc-500 mt-0.5">
+                  <span className="font-medium text-zinc-900">{incomingSession.tutorName}</span> has accepted your session.
                 </p>
                 <div className="flex gap-2 mt-4">
                   <button
                     onClick={() => {
                       const sid = String(incomingSession.sessionId);
-                      console.log("[NOTIF] Redirecting to session:", sid);
                       if (sid) {
                         setIncomingSession(null);
                         window.location.href = `/session/${sid}`;
                       }
                     }}
-                    className="flex-1 bg-indigo-600 text-white py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 text-center"
+                    className="flex-1 bg-zinc-900 text-white py-1.5 rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors"
                   >
-                    Join Now
+                    Join Session
                   </button>
                   <button
                     onClick={() => setIncomingSession(null)}
-                    className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
+                    className="px-3 py-1.5 bg-white border border-zinc-200 text-zinc-600 rounded-md text-sm font-medium hover:bg-zinc-50 transition-colors"
                   >
                     Dismiss
                   </button>

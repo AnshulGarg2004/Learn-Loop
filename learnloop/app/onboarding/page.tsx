@@ -77,7 +77,7 @@ export default function OnboardingPage() {
                                 name="college"
                                 id="college"
                                 required
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all outline-none"
+                                className="w-full px-4 py-3 text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all outline-none"
                                 placeholder="e.g. Stanford University"
                             />
                         </div>
@@ -92,7 +92,7 @@ export default function OnboardingPage() {
                                 name="skills"
                                 id="skills"
                                 required
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all outline-none"
+                                className="w-full px-4 py-3 text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all outline-none"
                                 placeholder="e.g. React, Python, Data Analysis"
                             />
                         </div>
@@ -107,7 +107,7 @@ export default function OnboardingPage() {
                                 name="subjects"
                                 id="subjects"
                                 required
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all outline-none"
+                                className="w-full px-4 py-3 text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all outline-none"
                                 placeholder="e.g. Computer Science, Mathematics"
                             />
                         </div>
@@ -122,7 +122,7 @@ export default function OnboardingPage() {
                                 name="languages"
                                 id="languages"
                                 required
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all outline-none"
+                                className="w-full px-4 py-3 text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all outline-none"
                                 placeholder="e.g. English, Spanish"
                             />
                         </div>
@@ -137,7 +137,7 @@ export default function OnboardingPage() {
                                 name="learningInterests"
                                 id="learningInterests"
                                 required
-                                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all outline-none"
+                                className="w-full px-4 py-3 text-gray-900 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all outline-none"
                                 placeholder="e.g. Machine Learning, Web Design"
                             />
                         </div>
