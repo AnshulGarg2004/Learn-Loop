@@ -4,7 +4,7 @@ const next = require('next');
 const { Server } = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
+const hostname = process.env.HOSTNAME || '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
 
 const app = next({ dev, hostname, port });
@@ -25,7 +25,9 @@ app.prepare().then(() => {
   // Initialize Socket.io
   const io = new Server(httpServer, {
     cors: {
-      origin: '*',
+      origin: [
+        process.env.FRONTEND_URL,
+      ],
       methods: ['GET', 'POST'],
     },
     transports: ['websocket', 'polling'],
@@ -41,37 +43,37 @@ app.prepare().then(() => {
 
     // --- Random Video Matching ---
     socket.on("start-matching", () => {
-        if (waitingList.includes(socket.id)) return;
-        
-        if (waitingList.length > 0) {
-            const partner = waitingList.shift();
-            const randomRoomId = `random-${Math.random().toString(36).substring(7)}`;
+      if (waitingList.includes(socket.id)) return;
 
-            activePairs.set(socket.id, partner);
-            activePairs.set(partner, socket.id);
+      if (waitingList.length > 0) {
+        const partner = waitingList.shift();
+        const randomRoomId = `random-${Math.random().toString(36).substring(7)}`;
 
-            socket.emit("matched", { roomId: randomRoomId });
-            io.to(partner).emit("matched", { roomId: randomRoomId });
-        } else {
-            waitingList.push(socket.id);
-            socket.emit('waiting');
-        }
+        activePairs.set(socket.id, partner);
+        activePairs.set(partner, socket.id);
+
+        socket.emit("matched", { roomId: randomRoomId });
+        io.to(partner).emit("matched", { roomId: randomRoomId });
+      } else {
+        waitingList.push(socket.id);
+        socket.emit('waiting');
+      }
     });
 
     socket.on("next-match", () => {
-        handleLeaveMatch(socket.id);
+      handleLeaveMatch(socket.id);
     });
 
     function handleLeaveMatch(id) {
-        const index = waitingList.indexOf(id);
-        if (index !== -1) waitingList.splice(index, 1);
-        
-        const partner = activePairs.get(id);
-        if (partner) {
-            io.to(partner).emit("partnerLeft");
-            activePairs.delete(partner);
-            activePairs.delete(id);
-        }
+      const index = waitingList.indexOf(id);
+      if (index !== -1) waitingList.splice(index, 1);
+
+      const partner = activePairs.get(id);
+      if (partner) {
+        io.to(partner).emit("partnerLeft");
+        activePairs.delete(partner);
+        activePairs.delete(id);
+      }
     }
     // ----------------------------
 
@@ -86,12 +88,12 @@ app.prepare().then(() => {
     socket.on('tutor-accepted', (data) => {
       const { studentId, sessionId, tutorName } = data;
       console.log(`[SOCKET] Tutor ${tutorName} accepted session ${sessionId} for student ${studentId}`);
-      
+
       const roomName = `user-${studentId}`;
       const room = io.sockets.adapter.rooms.get(roomName);
       const numClients = room ? room.size : 0;
       console.log(`[SOCKET] Notifying room ${roomName} (${numClients} clients)`);
-      
+
       io.to(roomName).emit('request-accepted', {
         sessionId,
         tutorName
